@@ -1,5 +1,5 @@
 import vigra
-import cgp2d
+import seglib.cgp2d as cgp2d
 import numpy
 import opengm
 from termcolor import colored
