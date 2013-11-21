@@ -1,0 +1,2 @@
+add_subdirectory(cgp2d)
+add_subdirectory(histogram)
