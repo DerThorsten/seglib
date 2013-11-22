@@ -1,4 +1,4 @@
-from _phist import *
+from _histogram import *
 import numpy
 import vigra
 from scipy.ndimage.filters import gaussian_filter1d as GaussianFilter1d
@@ -34,7 +34,7 @@ def histogram(image,dmin=None,dmax=None,bins=32,r=3,sigma=[2.0,1.0],out=None):
 
     
     # computet the actual histogram
-    rawHist  = _phist._batchHistogram_( img=img,dmin=dmin,dmax=dmax,bins=bins,r=r,out=out)
+    rawHist  = _histogram._batchHistogram_( img=img,dmin=dmin,dmax=dmax,bins=bins,r=r,out=out)
 
 
 
@@ -96,7 +96,7 @@ def jointHistogram(image,dmin=None,dmax=None,bins=5.0,r=1,sigma=[1.0,1.0],out=No
     nChannels = img.shape[2]
     flat      = img.reshape([-1,nChannels])
 
-    print "flatshape",flat.shape
+    #print "flatshape",flat.shape
 
     assert nChannels == 3
 
@@ -111,7 +111,7 @@ def jointHistogram(image,dmin=None,dmax=None,bins=5.0,r=1,sigma=[1.0,1.0],out=No
     #print dmin
     #print dmax
 
-    imgHist = _phist._jointColorHistogram_(img=img,dmin=dmin,dmax=dmax,bins=b,r=r,out=out)
+    imgHist = _histogram._jointColorHistogram_(img=img,dmin=dmin,dmax=dmax,bins=b,r=r,out=out)
 
 
     if sigma is not None :
@@ -127,7 +127,7 @@ def labelHistogram(img,nLabels,r=1,sigma=1.0,out=None,visu=False):
     labels = numpy.require(img,dtype=numpy.uint64)
 
 
-    labelHist = _phist._label_histogram_(img=labels,nLabels=long(nLabels),r=long(r),out=out)
+    labelHist = _histogram._label_histogram_(img=labels,nLabels=long(nLabels),r=long(r),out=out)
 
 
 
@@ -194,7 +194,7 @@ def labelHistogramNew(img,nLabels,labelSim,r=1,sigma=1.0,out=None,visu=False):
     for l  in range(nLabels ):
         labelSim[l,l,0]=1.0
     """
-    labelHist=_phist._label_sim_histogram_(
+    labelHist=_histogram._label_sim_histogram_(
         img=img.copy(),
         labelSim=labelSim.copy(),
         nLabels=nLabels,
