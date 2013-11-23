@@ -143,7 +143,7 @@ def detexturize(
     reductionAlg='pca',
     distance=None,
     nldScale=20.0,
-    nldEdgeThresold=0.01
+    nldEdgeThreshold=0.01
 ):
     shape 	= img.shape
     print "get histogram"
@@ -164,7 +164,7 @@ def detexturize(
         cImg = distToCenters[:,:,k].copy().astype(numpy.float32)
         #pylab.imshow(numpy.swapaxes(distToCenters[:,:,k],0,1))
         #pylab.show()
-        sImg = vigra.filters.nonlinearDiffusion(cImg,scale=nldScale,edgeThreshold=nldEdgeThresold)
+        sImg = vigra.filters.nonlinearDiffusion(cImg,scale=nldScale,edgeThreshold=nldEdgeThreshold)
         smoothed[:,:,k]=sImg
 
     print "dimension reduction"
@@ -184,6 +184,9 @@ def detexturize(
     #pylab.show()
 
     return reducted
+
+
+
 
 
 def detexturize2(
@@ -207,6 +210,57 @@ def detexturize2(
     # fuzzy cluster in codebooks
     labels,centers,distToCenters = imageCodebookClustering(
     img=hist,nClusters=nCluster,distance=distance,batchSize=1000,iterations=500,nInit=3
+    )
+
+    print "do smothing"
+    smoothed = numpy.ones(shape[0:2] + (nCluster,))
+
+    for k in range(nCluster):
+        print k
+        cImg = distToCenters[:,:,k].copy().astype(numpy.float32)
+        #pylab.imshow(numpy.swapaxes(distToCenters[:,:,k],0,1))
+        #pylab.show()
+        sImg = vigra.filters.nonlinearDiffusion(cImg,scale=nldScale,edgeThreshold=nldEdgeThresold)
+        smoothed[:,:,k]=sImg
+        #pylab.imshow(numpy.swapaxes(sImg,0,1))
+        #pylab.show()
+    print "dimension reduction"
+    
+    
+
+    #pylab.imshow(numpy.swapaxes(sImg,0,1))
+    #pylab.show()
+
+
+    reducted = imageDimensionReduction(smoothed,nComponents=3,alg=reductionAlg).astype(numpy.float32)
+    reducted = vigra.taggedView(reducted, 'xyc')
+
+    
+
+    #Apylab.imshow(numpy.swapaxes(normC01(reducted),0,1))
+    #pylab.show()
+
+    return reducted
+
+
+
+def detexturize2(
+    img,
+    nCluster=15,
+    reductionAlg='pca',
+    distance=None,
+    nldScale=10.0,
+    nldEdgeThresold=1.0
+):
+    shape   = img.shape
+    print "get histogram"
+    # get histogram
+    hist = denseSift(img,scale=1.0)
+
+    print "codebook clustering"
+    # fuzzy cluster in codebooks
+    labels,centers,distToCenters = imageCodebookClustering(
+    simg=hist,nClusters=nCluster,distance=distance,batchSize=1000,iterations=500,nInit=3
     )
 
     print "do smothing"

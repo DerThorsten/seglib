@@ -6,10 +6,12 @@ import seglib.edge_detectors.pixel as edp
 import seglib.region_descriptors.pixel as rdp
 from seglib.preprocessing import norm01
 
-img 	  = numpy.squeeze(vigra.readImage('zebra.jpg'))#[0:75,0:75,:]
-gradmag   = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(img,sigma=4.0))
-imgdt     = rdp.detexturize2(img,nCluster=8,r=1,sigmaSpace=2,reductionAlg='pca',nldScale=3.0,distance=None)#'cityblock')
-imgdt     = rdp.detexturize(imgdt,nCluster=15,r=1,sigmaSpace=5,reductionAlg='pca',nldScale=3.0,distance=None)
+img = "/home/tbeier/src/privatOpengm/experiments/datasets/bsd500/BSR/BSDS500/data/images/test/120093.jpg"
+
+
+img 	  = numpy.squeeze(vigra.readImage(img))#[0:75,0:75,:]
+gradmag   = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(img,sigma=2.0))
+imgdt     = rdp.detexturize(img,nCluster=15,r=1,sigmaSpace=3,reductionAlg='pca',nldScale=20.0,nldEdgeThreshold=0.009,distance=None)
 gradmagdt   = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(imgdt,sigma=2.0))
 
 gmult = norm01(gradmagdt)*norm01(gradmag)
