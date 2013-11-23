@@ -2,10 +2,11 @@ import vigra
 import numpy
 import pylab
 
-import seglib.edge_detectors.pixel as edp
 import seglib.region_descriptors.pixel as rdp
 from seglib.preprocessing import norm01
 
+
+# change me to your path
 img = "/home/tbeier/src/privatOpengm/experiments/datasets/bsd500/BSR/BSDS500/data/images/test/120093.jpg"
 
 
