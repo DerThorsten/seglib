@@ -203,13 +203,13 @@ namespace histogram {
     }
 
 
-
+    /*
 
     vigra::NumpyAnyArray labelMaskedHistogram(
         // input data (for example an rgb image with xyc order)
         vigra::NumpyArray<3, vigra::Multiband<float>  >         img,
         // input labeling for which are used as mask images
-        vigra::NumpyArray<3, vigra::Multiband<vigra::UInt64>    labelings,
+        vigra::NumpyArray<3, vigra::Multiband<vigra::UInt64> >  labelings,
         vigra::NumpyArray<1, UInt64>                            numberOfLabels,
         vigra::NumpyArray<1, float>                             weights
     ){
@@ -217,7 +217,7 @@ namespace histogram {
         const size_t numberOfInputLabelings = labelings.shape(2);
         
     }
-
+    */
 
 
     void export_histogram(){
