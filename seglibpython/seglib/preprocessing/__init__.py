@@ -1,4 +1,4 @@
-
+import numpy
 
 def reshapeFromImage(data):
 	dx,dy=data.shape[0:2]
@@ -24,3 +24,12 @@ def normC01(data):
 		b[:,:,c]-=b[:,:,c].min()
 		b[:,:,c]/=b[:,:,c].max()
 	return b
+
+
+
+
+def normCProb(img):
+	assert img.ndim==3
+	a=img.copy()
+	a /=  a.sum(axis=2)[:,:,numpy.newaxis]
+	return a

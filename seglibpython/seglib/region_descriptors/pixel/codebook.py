@@ -1,3 +1,4 @@
+import numpy
 # own code 
 from seglib.preprocessing import reshapeFromImage,reshapeToImage
 from seglib.clustering 	  import MiniBatchKMeans as MiniBatchKMeansCustom
@@ -5,7 +6,7 @@ from sklearn.cluster      import MiniBatchKMeans as MiniBatchKMeansSklearn
 #external
 from sklearn.decomposition import PCA,ProbabilisticPCA, RandomizedPCA, KernelPCA, SparsePCA, TruncatedSVD ,NMF
 from scipy.spatial.distance import cdist
-
+from sklearn.preprocessing import scale
 def imageCodebookClustering(img,nClusters,distance=None,batchSize=100,iterations=100,nInit=10):
     """
 
@@ -29,16 +30,17 @@ def imageCodebookClustering(img,nClusters,distance=None,batchSize=100,iterations
         labels 		= reshapeToImage(kmeans._labels,shape)
         centers 		= kmeans._centers
 
-    return labels,centers,distToCenters
+    return numpy.squeeze(labels),centers,distToCenters
 
 
 
 def imageDimensionReduction(img,nComponents=3,alg='pca',**kwargs):
+
     shape   = img.shape
     X       = reshapeFromImage(img)
+    X       = scale(X)
     algs    = dict(pca=PCA,ppca=ProbabilisticPCA,rpca=RandomizedPCA,kpca=KernelPCA,spca=SparsePCA,tsvd=TruncatedSVD,nmf=NMF)
-    salg    = algs[alg](n_components=nComponents,**kwargs)
-
+    salg = algs[alg](n_components=nComponents,**kwargs)
     # reduce dimensionality 
     XX = reshapeToImage(salg.fit_transform(X),shape)
     return XX

@@ -488,7 +488,7 @@ class more_cgp(injector_more_cgp, Cgp):
     def accumulateCellHistogram(self,cellType,image,histogramRange=None,binCount=64,useCellMinMax=False,sigma=None):
       assert image.ndim ==2 or image.ndim==3
 
-      data=image.reshape(image.shape[0],image.shape[1],-1)
+      data=image.reshape([image.shape[0],image.shape[1],-1])
       nChannels = data.shape[2]
       nCells    = self.numCells(cellType)
 
