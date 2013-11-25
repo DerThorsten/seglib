@@ -17,7 +17,7 @@ gradmag   = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(img,sigma=4.0)
 
 
 sift  = denseSift(img)
-imgdt = rdp.detexturize(sift,nCluster=10,reductionAlg='nmf',nldEdgeThreshold=1.0,nldScale=15.0,distance=None)#'cityblock')
+imgdt = rdp.detexturize(sift,nCluster=10,reductionAlg='pca',nldEdgeThreshold=1.0,nldScale=15.0,distance=None)#'cityblock')
 
 
 f = pylab.figure()
@@ -31,7 +31,7 @@ pylab.show()
 
 hist  = histogram(imgdt,bins=30,r=1,sigma=[float(3.0),float(1.0)])
 
-imgdt     = rdp.detexturize(hist,nCluster=15,reductionAlg='pca',nldScale=20.0,nldEdgeThreshold=0.012,distance=None)
+imgdt     = rdp.detexturize(hist,nCluster=15,reductionAlg='pca',nldScale=20.0,nldEdgeThreshold=0.015,distance=None)
 gradmagdt   = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(imgdt,sigma=2.0))
 
 gmult = norm01(gradmagdt)*norm01(gradmag)

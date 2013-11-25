@@ -12,7 +12,7 @@ from seglib.region_descriptors.pixel.sift import denseSift
 
 
 # change me to your path
-img = "/home/tbeier/src/privatOpengm/experiments/datasets/bsd500/BSR/BSDS500/data/images/test/226033.jpg"
+img = "img/text.jpg"
 img = numpy.squeeze(vigra.readImage(img))#[0:75,0:75,:]
 
 binCount = 30 

@@ -16,7 +16,7 @@ img 	  = numpy.squeeze(vigra.readImage(img))#[0:75,0:75,:]
 gradmag   = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(img,sigma=4.0))
 
 
-sift  = denseSift(img)
+sift  = histogram(img)
 imgdt = rdp.deepDetexturize(srcImg=img,img=sift,nIteration=10,
 	nCluster=10,reductionAlg='pca',nldEdgeThreshold=0.005,nldScale=10.0,distance=None)#'cityblock')
 
