@@ -1,2 +1,2 @@
 from codebook import imageCodebookClustering,imageDimensionReduction
-from detexturization import detexturize,deepDetexturize
+from detexturization import detexturize,detexturize2,deepDetexturize

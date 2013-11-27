@@ -100,3 +100,56 @@ def deepDetexturize(
             else :
                 pylab.imshow(numpy.swapaxes(norm01(iterImg),0,1))
         pylab.show()
+
+
+
+
+
+
+def detexturize2(
+    imgs,
+    nCluster=15,
+    reductionAlg='pca',
+    distance=None,
+    nldScale=20.0,
+    nldEdgeThreshold=0.01
+):
+    shape   = imgs[0].shape
+    ss = []
+    for img in imgs:
+
+        print "codebook clustering"
+        # fuzzy cluster in codebooks
+        labels,centers,distToCenters = imageCodebookClustering(
+        img=img,nClusters=nCluster,distance=distance,batchSize=1000,iterations=500,nInit=3
+        )
+
+
+        print "do smothing"
+        smoothed = numpy.ones(shape[0:2] + (nCluster,))
+
+        for k in range(nCluster):
+            print k
+            cImg = distToCenters[:,:,k].copy().astype(numpy.float32)
+            #pylab.imshow(numpy.swapaxes(distToCenters[:,:,k],0,1))
+            #pylab.show()
+            sImg = vigra.filters.nonlinearDiffusion(cImg,scale=nldScale,edgeThreshold=nldEdgeThreshold)
+            smoothed[:,:,k]=sImg
+
+        ss.append(smoothed)
+    smoothed = numpy.concatenate(ss,axis=2)
+    
+
+    #pylab.imshow(numpy.swapaxes(sImg,0,1))
+    #pylab.show()
+
+
+    reducted = imageDimensionReduction(smoothed,nComponents=3,alg=reductionAlg).astype(numpy.float32)
+    reducted = vigra.taggedView(reducted, 'xyc')
+
+    
+
+    #Apylab.imshow(numpy.swapaxes(normC01(reducted),0,1))
+    #pylab.show()
+
+    return reducted
