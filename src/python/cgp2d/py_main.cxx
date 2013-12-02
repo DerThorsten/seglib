@@ -21,7 +21,7 @@
 
 // misc
 #include "misc/py_segcompare.hxx"
-
+#include "misc/py_merge.hxx"
 
 BOOST_PYTHON_MODULE_INIT(_cgp2d) {
     //using namespace boost::python;
@@ -48,6 +48,6 @@ BOOST_PYTHON_MODULE_INIT(_cgp2d) {
 
     // image processing related functions and classes 
     cgp2d::export_segcompare();
-
+    cgp2d::export_merge();
 
 }

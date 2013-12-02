@@ -17,6 +17,7 @@ add_library(_cgp2d SHARED
 
     # image processing related 
     misc/py_segcompare.cxx
+    misc/py_merge.cxx
     py_main.cxx
 )
 target_link_libraries(_cgp2d

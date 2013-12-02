@@ -12,9 +12,9 @@ from seglib.region_descriptors.pixel.sift import denseSift
 
 
 # change me to your path
-img = "img/108005.jpg"
-sigma = 2.0
-epsilon = 0.6**2
+img = "img/t.jpg"
+sigma = 5.0
+epsilon = 0.4**2
 img       = numpy.squeeze(vigra.readImage(img))#[0:75,0:75,:]
 
 
