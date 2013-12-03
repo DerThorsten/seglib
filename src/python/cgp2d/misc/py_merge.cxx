@@ -32,25 +32,74 @@ namespace cgp2d {
     typedef CgpType::TopologicalGridType TopologicalGridType;
 
 
-    vigra::NumpyAnyArray  hlCost(
-
-        const Cgp<CoordinateType,LabelType>  &  cgp,
-        vigra::NumpyArray<1,LabelType>          argPrimal,
+    void mergeFeatures(
+        vigra::NumpyArray<1,LabelType>          labeling,
+        const size_t                            numberOfLabels,
+        vigra::NumpyArray<1,float>              weights,
         vigra::NumpyArray<2,float>              features,
-        vigra::NumpyArray<2,float>              mergedFeaturesBuffer,
+        vigra::NumpyArray<2,float>              mergedFeatures,
+        vigra::NumpyArray<1,float>              weightBuffer
     ){ 
+        CGP_ASSERT_OP(labeling.shape(0),==,features.shape(0));
+        CGP_ASSERT_OP(labeling.shape(0),==,mergedFeatures.shape(0));
+        CGP_ASSERT_OP(features.shape(1),==,mergedFeatures.shape(1));
+        CGP_ASSERT_OP(weightBuffer.shape(0),==,features.shape(0));
 
+        // initalize with zeros
+        std::fill(mergedFeatures.begin(),mergedFeatures.begin()+numberOfLabels,0.0);
+        std::fill(weightBuffer.begin(),weightBuffer.begin()+numberOfLabels,0.0);
+
+
+        const size_t nItems = labeling.shape(0);
+        const size_t nFeatures = features.shape(1);
+
+        // accumulate
+        for(size_t i=0;i<nItems;++i){
+
+            // get the label
+            const size_t label = labeling(i);
+            // get the weight
+            const float weight = weights(i);
+            // accumulate features
+            for(size_t f=0;f<nFeatures;++f){
+                mergedFeatures(label,f)+=weights*features(i,f);
+            }
+            // accumulate weights
+            weightBuffer(i)+=weight;
+        }
+        // normalize 
+
+        for(size_t label=0;label<numberOfLabels;++label){
+            const float weight=weights(label);
+            for(size_t f=0;f<nFeatures;++f){
+                mergedFeatures(label,f)/=weight;
+            }
+        }
+
+    }
+
+
+
+
+
+    void clusterObjective(
+        Cgp<CoordinateType,LabelType> & cgp,
+        vigra::NumpyArray<1,LabelType>          labeling,
+        vigra::NumpyArray<2,float>              features,
+        vigra::NumpyArray<2,float>              mergedFeatures
+    ){
+        
     }
 
 
 
     void export_merge(){
 
-        python::def("_hlCost",vigra::registerConverters(&hlCost),
+        python::def("_mergeFeatures",vigra::registerConverters(&mergeFeatures),
             (
-                python::arg("labelings"),
-                python::arg("nLabels"),
-                python::arg("out")=python::object()
+                python::arg("labeling"),
+                python::arg("features"),
+                python::arg("mergedFeatures")=python::object()
             )
         );
 
