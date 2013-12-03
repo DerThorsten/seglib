@@ -22,6 +22,8 @@
 
 #include "seglib/cgp2d/cgp2d.hxx"
 #include "seglib/cgp2d/cgp2d_python.hxx"
+#include "seglib/distances/distance.hxx"
+
 
 namespace python = boost::python;
 
@@ -79,16 +81,79 @@ namespace cgp2d {
     }
 
 
-
-
-
-    void clusterObjective(
-        Cgp<CoordinateType,LabelType> & cgp,
+    float withinClusterDist(
         vigra::NumpyArray<1,LabelType>          labeling,
+        const size_t                            numberOfLabels,
+        vigra::NumpyArray<1,float>              weights,
         vigra::NumpyArray<2,float>              features,
         vigra::NumpyArray<2,float>              mergedFeatures
     ){
-        
+        CGP_ASSERT_OP(labeling.shape(0),==,features.shape(0));
+        CGP_ASSERT_OP(labeling.shape(0),==,mergedFeatures.shape(0));
+        CGP_ASSERT_OP(features.shape(1),==,mergedFeatures.shape(1));
+
+
+        const size_t nItems = labeling.shape(0);
+        const size_t nFeatures = features.shape(1);
+
+        float totalD = 0.0;
+
+        for(size_t i=0;i<nItems;++i){
+
+            // get the label
+            const size_t label = labeling(i);
+
+            // compute the distance between the feature of the item (superpixel)
+            // and the feature of the cluster (cluster of superpixel / "HyperRegion")
+            vigra::MultiArrayView<1,float> a=features.bindInner(i);
+            vigra::MultiArrayView<1,float> b=mergedFeatures.bindInner(label);
+            const  float d = distances::Distance<float>::klDivergenz(a.begin(),a.end(),b.begin(),b.end());
+            // get the weight of the item (superpixel size)
+            const float weight=weights(i);
+
+            totalD += weight*d;
+
+
+            //weightBuffer(l)+=weight
+        }
+        return totalD;
+    }
+
+    float betweenClusterDist(
+        const Cgp<CoordinateType,LabelType> &   cgp,
+        vigra::NumpyArray<1,LabelType>          labeling,
+        const size_t                            numberOfLabels,
+        vigra::NumpyArray<2,float>              mergedFeatures
+    ){
+
+        float totalD=0.0f;
+
+        std::set<size_t> used;
+        const size_t nBoundaries = cgp.numCells(1);
+        for(size_t b=0;b<nBoundaries;++b){
+            const size_t r1 = cgp.bound<1>(b,0)-1;
+            const size_t r2 = cgp.bound<1>(b,1)-1; 
+
+            size_t l1 =labeling(r1);
+            size_t l2 =labeling(r2);
+
+            // active boundarie ? 
+            if(l1!=l2){
+
+                if(l2<l1){
+                    std::swap(l1,l2);
+                }
+                const size_t key = l1+ l2*numberOfLabels;
+                if(used.find(key)==used.end()){
+                    used.insert(key);
+                    vigra::MultiArrayView<1,float> a=mergedFeatures.bindInner(l1);
+                    vigra::MultiArrayView<1,float> b=mergedFeatures.bindInner(l2);
+                    const float d = distances::Distance<float>::klDivergenz(a.begin(),a.end(),b.begin(),b.end());
+                    totalD+=d;
+                }
+            }       
+        }
+        return totalD;
     }
 
 
@@ -98,8 +163,30 @@ namespace cgp2d {
         python::def("_mergeFeatures",vigra::registerConverters(&mergeFeatures),
             (
                 python::arg("labeling"),
+                python::arg("numberOfLabels"),
+                python::arg("weights"),
                 python::arg("features"),
-                python::arg("mergedFeatures")=python::object()
+                python::arg("mergedFeatures"),
+                python::arg("weightBuffer")
+            )
+        );
+
+        python::def("_withinClusterDist",vigra::registerConverters(&withinClusterDist),
+            (
+                python::arg("labeling"),
+                python::arg("numberOfLabels"),
+                python::arg("weights"),
+                python::arg("features"),
+                python::arg("mergedFeatures")
+            )
+        );
+
+        python::def("_betweenClusterDist",vigra::registerConverters(&betweenClusterDist),
+            (
+                python::arg("cgp"),
+                python::arg("labeling"),
+                python::arg("numberOfLabels"),
+                python::arg("mergedFeatures")
             )
         );
 
