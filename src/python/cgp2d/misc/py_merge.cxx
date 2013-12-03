@@ -62,7 +62,7 @@ namespace cgp2d {
             const float weight = weights(i);
             // accumulate features
             for(size_t f=0;f<nFeatures;++f){
-                mergedFeatures(label,f)+=weights*features(i,f);
+                mergedFeatures(label,f)+=weight*features(i,f);
             }
             // accumulate weights
             weightBuffer(i)+=weight;
