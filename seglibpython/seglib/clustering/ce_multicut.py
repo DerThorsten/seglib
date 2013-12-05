@@ -33,8 +33,8 @@ def gradientToWeight(gradient,gamma):
 	#normGrad = norm01(gradient)
 	e = numpy.exp(-gamma*gradient)
 
-	e0  = e
-	e1  = 1.0-e0
+	e1  = e
+	e0  = 1.0-e1
 
 	"""
 	print "g ",gradient[:5]
@@ -42,7 +42,7 @@ def gradientToWeight(gradient,gamma):
 	print "e1",e1[:5]
 	print "w ",(e0-e1)[:5]
 	"""
-	return e0-e1
+	return e1-e0
 
 
 

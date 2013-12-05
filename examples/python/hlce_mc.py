@@ -7,29 +7,82 @@ from seglib.preprocessing import norm01,normCProb,reshapeToImage,normCProbFlat
 
 import pylab
 
+
+
+
+
 img = "img/37073.jpg"
-img = "img/42049.jpg"
+img = "img/156065.jpg"
 img = numpy.squeeze(vigra.readImage(img))#[0:75,0:75,:]
 lab = vigra.colors.transform_RGB2Lab(img)
-labels ,nseg= vigra.analysis.slicSuperpixels(lab,10.0,15)
+labels ,nseg= vigra.analysis.slicSuperpixels(lab,10.0,25)
 labels = vigra.analysis.labelImage(labels).astype(numpy.uint64)
 cgp,tgrid = cgp2d.cgpFromLabels(labels)
 imgBig = vigra.sampling.resize(lab,cgp.shape)
-grad = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(imgBig,4.5))+0.1
+grad = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(imgBig,2.5))+0.1
 
+
+
+#def changeWeights(self,weights,cgp=cgp):
+#    self = None
+#    self = multicutFromCgp(cgp,weights)
+def argDual(self,out):
+    arg = self.arg()
+    factorSubset=opengm.FactorSubset(gm)
+    variableIndices = factorSubset.variableIndices()
+    #print variableIndices.shape
+
+    out[:]= arg[variableIndices[:,0]]!=arg[variableIndices[:,1]]
+
+    return out
+
+opengm.inference.Cgc.argDual = argDual
+#opengm.inference.Cgc.changeWeights = changeWeights
 
 if False :
     imgBigRgb = vigra.sampling.resize(img,cgp.shape)
     cgp2d.visualize(imgBigRgb,cgp)
 
 
-weights = imgToWeight(cgp=cgp,img=grad,gamma=1.6,method='exp')
-cgc,gm  = multicutFromCgp(cgp=cgp,weights=weights)
+#weights = imgToWeight(cgp=cgp,img=grad,gamma=50.5,method='exp')
+
+
+
+
+
+print "accumulate cell hist"
+hist = cgp.accumulateCellHistogram(cellType=2,image=img,binCount=8,sigma=1.5)
+hist = hist.reshape([cgp.numCells(2),-1]).astype(numpy.float32)
+hist = normCProbFlat(hist)
+print hist.shape
+
+
+
+print "accumulate cell feat"
+feat = cgp.accumulateCellFeatures(cellType=2,image=img,features='Mean')[0]['Mean']
+feat = feat.reshape([cgp.numCells(2),-1]).astype(numpy.float32)
+#feat = normCProbFlat(hist)
+print feat.shape
+
+
+edge=cgp.cell2ToCell1Feature(feat,mode='l2')
+print edge.min(),edge.max()
+
+e1=numpy.exp(-0.00023*edge)
+e0=1.0-e1
+w=e1-e0
+
+
+
+
+
+
+cgc,gm  = multicutFromCgp(cgp=cgp,weights=w)
 nFac    = cgp.numCells(1)
 nVar    = cgp.numCells(2)
 
 
-#cgc.infer(cgc.verboseVisitor())
+cgc.infer(cgc.verboseVisitor())
 
 
 
@@ -39,32 +92,21 @@ argDual=argDual.astype(numpy.float32)
 ce = CeMc(cgp=cgp)
 
 
-if False :
+if True :
     imgBigRgb = vigra.sampling.resize(img,cgp.shape)
     cgp2d.visualize(imgBigRgb,cgp,edge_data_in=argDual)
 
 
-initWeights = weights.copy()
-weightsMean = weights.copy()
+initWeights = w.copy()
+weightsMean = w.copy()
 weightsStd  = numpy.ones(nFac,dtype=numpy.float32)*0.25
 
 
 
 
-"""
-print "accumulate cell hist"
-hist = cgp.accumulateCellHistogram(cellType=2,image=img,binCount=15,sigma=1.5)
-hist = hist.reshape([cgp.numCells(2),-1]).astype(numpy.float32)
-hist = normCProbFlat(hist)
-print hist.shape
 
-"""
 
-print "accumulate cell feat"
-feat = cgp.accumulateCellFeatures(cellType=2,image=lab,features='Mean')[0]['Mean']
-feat = feat.reshape([cgp.numCells(2),-1]).astype(numpy.float32)
-#feat = normCProbFlat(hist)
-print feat.shape
+
 
 
 #hist=vigra.taggedView(hist,"xc")
@@ -155,12 +197,12 @@ class Objective(object):
 obj = Objective(cgp,initWeights)
 
 
-nSamples = 15
+nSamples = 50
 nElites  = 1
 
 
-mixLow    = 0.1
-mixHigh   = 0.7
+mixLow    = 0.01
+mixHigh   = 0.5
 
 mOffset   = 0.0
 varOffset = 0.1
@@ -183,11 +225,11 @@ for  iteration in range(1000):
     print  iteration
     for sampleIndex in range(nSamples):
         # sample new weights
-        offset  = gaussOffset(0.0,0.1)
-        weights = sampleFromGauss(mean=weightsMean,std=weightsStd,out=weights) + offset
+        offset  = gaussOffset(0.0,0.007)
+        weights = sampleFromGauss(mean=weightsMean,std=weightsStd,out=w) + offset
         # update multicut weights
-        cgc.changeWeights(weights)
-
+        #cgc.changeWeights(weights)
+        cgc =  multicutFromCgp(cgp,weights)[0]
         # infer
         #print  sampleIndex,iteration
         #cgc.infer(cgc.verboseVisitor())
@@ -202,31 +244,37 @@ for  iteration in range(1000):
         hlo.mergeFeatures()
 
         within  = hlo.withinClusterDistance();
-        between = hlo.betweenClusterDistance("squaredNorm",0.2)
+        between = hlo.betweenClusterDistance("squaredNorm",0.05)
 
-        print "remerge"
+        print "remerge",between
         remerged = hlo.writeBackMergedFeatures()
+        edgeSum=cgp.cell2ToCell1Feature(remerged,mode='l2')
+        """
+        for c in range(remerged.shape[-1]):
+            print c
+            r0=cgp.featureToImage(cellType=2,features=remerged[:,c],ignoreInactive=False,inactiveValue=0.0,useTopologicalShape=False)
+            pylab.imshow(    numpy.swapaxes(norm01(r0),0,1) )
+            pylab.show()
+        """
+        #r1=cgp.featureToImage(cellType=2,features=remerged[:,1],ignoreInactive=False,inactiveValue=0.0,useTopologicalShape=False)
+        #r2=cgp.featureToImage(cellType=2,features=remerged[:,2],ignoreInactive=False,inactiveValue=0.0,useTopologicalShape=False)
 
-        r0=cgp.featureToImage(cellType=2,features=remerged[:,0],ignoreInactive=False,inactiveValue=0.0,useTopologicalShape=False)
-        r1=cgp.featureToImage(cellType=2,features=remerged[:,1],ignoreInactive=False,inactiveValue=0.0,useTopologicalShape=False)
-        r2=cgp.featureToImage(cellType=2,features=remerged[:,2],ignoreInactive=False,inactiveValue=0.0,useTopologicalShape=False)
+        #imgM=img.copy()
 
-        imgM=img.copy()
-
-        imgM[:,:,0]=r0
-        imgM[:,:,1]=r1
-        imgM[:,:,2]=r2
+        #imgM[:,:,0]=r0
+        #imgM[:,:,1]=r1
+        #imgM[:,:,2]=r2
 
 
 
-        edge=cgp.cell2ToCell1Feature(remerged,mode='l2')
+        #
 
 
-        pylab.imshow(    numpy.swapaxes(norm01(imgM[:,:,:]),0,1) )
-        pylab.show()
+        #pylab.imshow(    numpy.swapaxes(norm01(imgM[:,:,:]),0,1) )
+        #pylab.show()
 
-        imgBigRgb = vigra.sampling.resize(img,cgp.shape)
-        cgp2d.visualize(imgBigRgb,cgp,edge_data_in=edge)
+        #imgBigRgb = vigra.sampling.resize(img,cgp.shape)
+        #cgp2d.visualize(imgBigRgb,cgp,edge_data_in=edge)
 
 
 
@@ -235,11 +283,11 @@ for  iteration in range(1000):
 
         #print "b",between*15.0
 
-        addOn    = between*15.0
+        addOn    = between#*15.0
 
         regular  = obj(argPrimal=argPrimal[sampleIndex,:],argDual=argDual[sampleIndex,:])
         #print "reg",regular,"addOn",addOn
-        objVal[sampleIndex] =  addOn   + regular
+        objVal[sampleIndex] =  addOn   #+ regular
 
         weightSamples[sampleIndex,:] = weights[:]
         weightOffset[sampleIndex] = offset
@@ -250,10 +298,12 @@ for  iteration in range(1000):
             bestObj=objVal[sampleIndex]
             print "bestObj",bestObj 
             bestState=argDual[sampleIndex,:].copy()
+            print "meanstate from best",numpy.mean(bestState),"best obj val",objVal[sampleIndex]
             #imgBigRgb = vigra.sampling.resize(img,cgp.shape)
             #cgp2d.visualize(imgBigRgb,cgp,edge_data_in=bestState.astype(numpy.float32))
             
-        if iteration%100==0 and sampleIndex==0:
+        if iteration%50==0 and sampleIndex==0:
+            print "meanstate from best",numpy.mean(bestState),"best obj val",objVal[sampleIndex]
             imgBigRgb = vigra.sampling.resize(img,cgp.shape)
             cgp2d.visualize(imgBigRgb,cgp,edge_data_in=bestState.astype(numpy.float32))
 
@@ -270,7 +320,7 @@ for  iteration in range(1000):
     weightsMeanNew= numpy.mean( weightSamples[sortedIndex[:nElites]],axis=0)
     weightsStdNew = numpy.std( weightSamples[sortedIndex[:nElites]],axis=0)
 
-    whereSmall = numpy.where(weightsStdNew<0.2)
+    whereSmall = numpy.where(weightsStdNew<0.4)
     weightsStdNew[whereSmall]=0.2
 
     # new offset 

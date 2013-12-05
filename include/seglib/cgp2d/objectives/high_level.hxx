@@ -158,7 +158,7 @@ namespace cgp2d {
     template<class CGP,class T>
     template<class DIST_FUNCTOR>
     float HighLevelObjective<CGP,T>::betweenClusterDistance(DIST_FUNCTOR & distFunctor,const double gamma){
-            
+        std::cout<<"GAMMA "<<gamma<<"\n";
         std::set<size_t> used;
         double totalD=0.0;
         double weightSum=0.0;
@@ -166,14 +166,19 @@ namespace cgp2d {
         for(size_t i=0;i<cgp_.numCells(1);++i){
             const size_t r1=cgp_. template bound<1> (i,0)-1;
             const size_t r2=cgp_. template bound<1> (i,1)-1;
+
+            CGP_ASSERT_OP(r1,<,cgp_.numCells(2) );
+            CGP_ASSERT_OP(r2,<,cgp_.numCells(2) );
+
             size_t l1=primalLabels_(r1);
             size_t l2=primalLabels_(r2);
-
+            CGP_ASSERT_OP(l1,<,nCC_);
+            CGP_ASSERT_OP(l2,<,nCC_);
+            
             if(l1!=l2){
                 if(l2<l1){
                     std::swap(l1,l2);
                 } 
-                CGP_ASSERT_OP(l1,<,nCC_);
                 const size_t key = l1 + l2*nCC_;
                 if(used.find(key)==used.end()){
                     used.insert(key);
@@ -181,7 +186,9 @@ namespace cgp2d {
                     vigra::MultiArrayView<1,float> c1=mergedCell2Features_.bindInner(l1);
                     vigra::MultiArrayView<1,float> c2=mergedCell2Features_.bindInner(l2);
 
-                    CGP_ASSERT_OP(c1.shape(0),==,cell2Features_.shape(2));
+                    // WTF
+                    //CGP_ASSERT_OP(0,==,1);
+                    CGP_ASSERT_OP(c1.shape(0),==,cell2Features_.shape(1));
 
                     const double d=distFunctor(c1,c2);
 

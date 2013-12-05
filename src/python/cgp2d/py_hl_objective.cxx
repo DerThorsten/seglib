@@ -43,13 +43,16 @@ float betweenClusterDistance(
     const std::string distance,
     const double gamma
 ){
-    if(distance=="squaredNorm"){
+    if(distance==std::string("squaredNorm")){
         dist::ChiSquared<double> distFunctor;
         return hlo.betweenClusterDistance(distFunctor,gamma);
     }
-    else if(distance=="chi2"){
+    else if(distance==std::string("chi2")){
         dist::SquaredNorm<double> distFunctor;
         return hlo.betweenClusterDistance(distFunctor,gamma);
+    }
+    else{
+        CGP_ASSERT_OP(false,==,true);
     }
 }
 
