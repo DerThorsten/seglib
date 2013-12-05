@@ -12,37 +12,6 @@ from scipy import sparse
 
 
 
-class HighLevelObjective(object):
-  def __init__(self,cgp,regionFeatures,edgeWeights):
-    self.cgp            = cgp
-    self.regionFeatures = regionFeatures
-    self.mergedFeatures = self.regionFeatures.copy()
-    self.weights        = numpy.ones(cgp.numCells(2),dtype=numpy.float32)
-    self.weightBuffer   = self.weights.copy()
-
-
-
-
-  def evaluate(self,argPrimal,argDual):
-    numberOfLabels = argDual.max()+1
-
-    # compute hyper region features
-    _mergeFeatures(
-      labeling        = argPrimal,
-      numberOfLabels  = numberOfLabels,           
-      weights         = self.weights
-      features        = self.regionFeatures  
-      mergedFeatures  = self.mergedFeatures        
-      weightBuffer    = self.weightBuffer      
-    )
-
-    withinClusterDist  = _withinClusterDist(
-      labeling        = argPrimal,
-      numberOfLabels  = numberOfLabels,           
-      weights         = self.weights
-      features        = self.regionFeatures  
-      mergedFeatures  = self.mergedFeatures          
-    )
 
 
 def regionAffinity(labelings,out=None):

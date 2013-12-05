@@ -17,11 +17,11 @@
 #include "cells/py_cell2vec.hxx"
 
 #include "py_cgp2d.hxx"
-
+#include "py_hl_objective.hxx"
 
 // misc
 #include "misc/py_segcompare.hxx"
-#include "misc/py_merge.hxx"
+//#include "misc/py_merge.hxx"
 
 BOOST_PYTHON_MODULE_INIT(_cgp2d) {
     //using namespace boost::python;
@@ -45,9 +45,11 @@ BOOST_PYTHON_MODULE_INIT(_cgp2d) {
     cgp2d::export_cell1vec();
     cgp2d::export_cell2vec();
 
+    // high level objective
+    cgp2d::export_hl_objective();
 
     // image processing related functions and classes 
     cgp2d::export_segcompare();
-    cgp2d::export_merge();
+    //cgp2d::export_merge();
 
 }

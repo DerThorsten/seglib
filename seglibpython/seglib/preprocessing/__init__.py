@@ -33,3 +33,10 @@ def normCProb(img):
 	a=img.copy()
 	a /=  a.sum(axis=2)[:,:,numpy.newaxis]
 	return a
+
+
+def normCProbFlat(img):
+	assert img.ndim==2
+	a=img.copy()
+	a /=  a.sum(axis=1)[:,numpy.newaxis]
+	return a

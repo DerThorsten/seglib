@@ -1,2 +1,2 @@
 from mini_batch_kmeans import MiniBatchKMeans
-from em import expectationMaximization
+#from em import expectationMaximization

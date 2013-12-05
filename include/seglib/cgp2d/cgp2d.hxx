@@ -160,10 +160,14 @@ class Cgp {
 
 
     template<int CELL_TYPE>
-    std::vector< Cell<COORDINATE_TYPE,LABEL_TYPE,CELL_TYPE> > & cells()const{
+    const std::vector< Cell<COORDINATE_TYPE,LABEL_TYPE,CELL_TYPE> > & cells()const{
         return CgpHelper<CELL_TYPE,CoordinateType,LabelType>::getCells(*this);
     }
 
+    template<int CELL_TYPE>
+    std::vector< Cell<COORDINATE_TYPE,LABEL_TYPE,CELL_TYPE> > & cells(){
+        return CgpHelper<CELL_TYPE,CoordinateType,LabelType>::getCells(*this);
+    }
 
 
 
