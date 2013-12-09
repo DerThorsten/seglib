@@ -27,7 +27,7 @@ nFac    = cgp.numCells(1)
 nVar    = cgp.numCells(2)
 
 
-#cgc.infer(cgc.verboseVisitor())
+cgc.infer()
 
 
 

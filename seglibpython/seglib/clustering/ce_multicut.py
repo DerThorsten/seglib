@@ -68,7 +68,7 @@ def imgToWeight(cgp,img,gamma,method='exp'):
 
 
 
-def multicutFromCgp(cgp,weights=None):
+def multicutFromCgp(cgp,weights=None,parameter=None):
 	boundArray 	= cgp.cell1BoundsArray()-1
 	nVar 		= cgp.numCells(2)
 	nFac 		= cgp.numCells(1)
@@ -82,7 +82,26 @@ def multicutFromCgp(cgp,weights=None):
 		pf=opengm.pottsFunctions([nVar,nVar],wZero,w)
 	fids = gm.addFunctions(pf)
 	gm.addFactors(fids,boundArray)
-	cgc = opengm.inference.Cgc(gm=gm,parameter=opengm.InfParam(planar=True))
+	cgc = opengm.inference.Cgc(gm=gm,parameter=parameter)
+
+
+
+	return cgc,gm
+
+
+
+def multicutFromCgp2(cgp,e0,e1,parameter=None):
+	boundArray 	= cgp.cell1BoundsArray()-1
+	nVar 		= cgp.numCells(2)
+	nFac 		= cgp.numCells(1)
+	space 		= numpy.ones(nVar,dtype=opengm.label_type)*nVar
+	gm 			= opengm.gm(space)
+	#w = numpy.require(weights,dtype=opengm.value_type)
+	pf=opengm.pottsFunctions([nVar,nVar],e0,e1)
+
+	fids = gm.addFunctions(pf)
+	gm.addFactors(fids,boundArray)
+	cgc = opengm.inference.Cgc(gm=gm,parameter=parameter)
 
 
 

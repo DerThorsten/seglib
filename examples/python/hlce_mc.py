@@ -23,20 +23,23 @@ grad = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(imgBig,2.5))+0.1
 
 
 
+
+
+
 #def changeWeights(self,weights,cgp=cgp):
 #    self = None
 #    self = multicutFromCgp(cgp,weights)
-def argDual(self,out):
-    arg = self.arg()
-    factorSubset=opengm.FactorSubset(gm)
-    variableIndices = factorSubset.variableIndices()
-    #print variableIndices.shape
-
-    out[:]= arg[variableIndices[:,0]]!=arg[variableIndices[:,1]]
-
-    return out
-
-opengm.inference.Cgc.argDual = argDual
+#def argDual(self,out):
+#    arg = self.arg()
+#    factorSubset=opengm.FactorSubset(gm)
+#    variableIndices = factorSubset.variableIndices()
+#    #print variableIndices.shape#
+#
+#    out[:]= arg[variableIndices[:,0]]!=arg[variableIndices[:,1]]
+#
+#    return out
+#
+#opengm.inference.Cgc.argDual = argDual
 #opengm.inference.Cgc.changeWeights = changeWeights
 
 if False :
@@ -76,13 +79,18 @@ w=e1-e0
 
 
 
-
-cgc,gm  = multicutFromCgp(cgp=cgp,weights=w)
+cgc,gm  = multicutFromCgp2(cgp=cgp,e0=e0,e1=e1)
+#cgc,gm  = multicutFromCgp(cgp=cgp,weights=w)
 nFac    = cgp.numCells(1)
 nVar    = cgp.numCells(2)
 
 
-cgc.infer(cgc.verboseVisitor())
+print "nVar",nVar,"nFac",nFac
+
+cgc.infer()
+
+sys.exit()
+
 
 
 
