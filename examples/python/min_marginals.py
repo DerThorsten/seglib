@@ -14,6 +14,8 @@ import inspect
 
 img = "img/37073.jpg"
 #img = "img/156065.jpg"
+img="img/42049.jpg"
+img="img/zebra.jpg"
 img = numpy.squeeze(vigra.readImage(img))#[0:75,0:75,:]
 lab = vigra.colors.transform_RGB2Lab(img)
 labels ,nseg= vigra.analysis.slicSuperpixels(lab,10.0,3)
@@ -24,9 +26,8 @@ imgBigRGB = vigra.sampling.resize(img,cgp.shape)
 grad = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(imgBig,2.5))+0.1
 
 
-
+"""
 print "get drag "
-
 drag = cgp2d.DynamicRag(cgp)
 
 print "numNodes ",drag.numberOfNodes() , cgp.numCells(2)
@@ -51,7 +52,7 @@ print "done"
 
 sys.exit(0)
 
-
+"""
 
 
 
