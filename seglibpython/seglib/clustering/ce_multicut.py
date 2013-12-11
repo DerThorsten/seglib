@@ -3,6 +3,31 @@ from seglib.preprocessing import norm01
 import opengm
 import numpy
 import vigra
+from sklearn.cluster import Ward,WardAgglomeration
+
+class CgpClustering(object):
+	def __init__(self,cgp):
+		self.cgp = cgp 
+		self.labels    = numpy.zeros(self.cgp.numCells(2),dtype=numpy.uint64)
+
+class HierarchicalClustering(CgpClustering):
+	def __init__(self,cgp):
+		super(HierarchicalClustering, self).__init__(cgp)
+		self.connectivity 	= cgp.sparseAdjacencyMatrix()
+
+	def segment(self,features,nClusters):
+
+		#print "features",features.shape
+		#print "self.connectivity",self.connectivity.shape
+
+		self.ward = WardAgglomeration(n_clusters=nClusters, connectivity=self.connectivity).fit(features.T)
+		self.labels[:] = self.ward.labels_
+
+	def mergedCgp(self):
+
+		newLabels  = self.cgp.featureToImage(cellType=2,features=self.labels.astype(numpy.float32),useTopologicalShape=False)
+		cgp,tgrid = cgp2d.cgpFromLabels(newLabels.astype(numpy.uint64)+1)
+		return cgp,tgrid
 
 
 
@@ -106,6 +131,82 @@ def multicutFromCgp2(cgp,e0,e1,parameter=None):
 
 
 	return cgc,gm
+
+
+
+
+
+class AggloCut(object):
+	def __init__(self,initCgp,edgeImage,rgbImage):
+		self.initCgp   = initCgp
+		self.edgeImage = edgeImage
+		self.rgbImage  = rgbImage
+
+		#
+		self.iterCgp   = initCgp
+
+	def infer(self,gammas,deleteN):
+
+
+		for gamma in gammas:
+
+			# get the weights for this gamma
+			#weights = gradientToWeight(self.edgeImage,gamma)
+			edge = self.iterCgp.accumulateCellFeatures(cellType=1,image=self.edgeImage,features='Mean')[0]['Mean']
+
+			e1=numpy.exp(-gamma*edge)
+			e0=1.0-e1
+			#w=e1-e0
+			cuts=True
+			while(cuts):
+
+				cuts=False
+				cgc,gm 	= multicutFromCgp2(cgp=self.iterCgp,e0=e0,e1=e1,parameter=opengm.InfParam(planar=True,inferMinMarginals=True))
+				deleteN = int(float(self.iterCgp.numCells(1))**(0.5)+0.5)
+				cgc.infer(cgc.verboseVisitor())
+				argDual = cgc.argDual()
+				if(argDual.min()==1):
+					print "READ GAMMA"
+					break
+
+				cgp2d.visualize(self.rgbImage,cgp=self.iterCgp,edge_data_in=argDual.astype(numpy.float32))
+				factorMinMarginals = cgc.factorMinMarginals()
+
+				m0 = factorMinMarginals[:,0].astype(numpy.float128)
+				m1 = factorMinMarginals[:,1].astype(numpy.float128)
+				m0*=-1.0
+				m1*=-1.0
+				p0 =  numpy.exp(m0)/(numpy.exp(m0)+numpy.exp(m1))
+				p1 =  numpy.exp(m1)/(numpy.exp(m0)+numpy.exp(m1))
+				cgp2d.visualize(self.rgbImage,cgp=self.iterCgp,edge_data_in=p1.astype(numpy.float32))
+
+				whereOn = numpy.where(argDual==1)
+				nOn   = len(whereOn[0])
+				nOff  = len(p0)-nOn
+				print "nOn",nOn,"off",nOff
+
+
+				p1[whereOn]+=100.0
+				sortedIndex = numpy.argsort(p1)
+
+				toDelete = deleteN
+				if deleteN > nOff:
+					toDelete = nOff
+				
+				cellStates = numpy.ones(self.iterCgp.numCells(1),dtype=numpy.uint32)
+				cellStates[sortedIndex[:toDelete]]=0
+				cgp2d.visualize(self.rgbImage,cgp=self.iterCgp,edge_data_in=cellStates.astype(numpy.float32))
+
+				print "merge cells"
+				newtgrid = self.iterCgp.merge2Cells(cellStates)
+				self.iterCgp  = cgp2d.Cgp(newtgrid)
+
+
+
+
+
+
+
 
 
 

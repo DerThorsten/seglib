@@ -14,51 +14,54 @@ import inspect
 
 img = "img/37073.jpg"
 #img = "img/156065.jpg"
-img="img/42049.jpg"
-img="img/zebra.jpg"
+#img="img/42049.jpg"
+#img="img/zebra.jpg"
 img = numpy.squeeze(vigra.readImage(img))#[0:75,0:75,:]
 lab = vigra.colors.transform_RGB2Lab(img)
-labels ,nseg= vigra.analysis.slicSuperpixels(lab,10.0,10)
+labels ,nseg= vigra.analysis.slicSuperpixels(lab,10.0,5)
 labels = vigra.analysis.labelImage(labels).astype(numpy.uint64)
 cgp,tgrid = cgp2d.cgpFromLabels(labels)
 imgBig = vigra.sampling.resize(lab,cgp.shape)
 imgBigRGB = vigra.sampling.resize(img,cgp.shape)
 grad = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(imgBig,2.5))+0.1
+#pylab.imshow(grad)
+#pylab.show()
+print cgp.numCells(2),cgp.numCells(1)
+
+
+
+if True:
+	print "accumulate cell feat"
+	feat = cgp.accumulateCellFeatures(cellType=2,image=lab,features='Mean')[0]['Mean']
+	feat = feat.reshape([cgp.numCells(2),-1]).astype(numpy.float32)
+
+	hc = HierarchicalClustering(cgp=cgp)
+	hc.segment(feat,2500)
+	mcgp,mtgrid = hc.mergedCgp()
+
+
+	cgp = mcgp
 
 print cgp.numCells(2),cgp.numCells(1)
-sys.exit()
-
-print "accumulate cell feat"
-feat = cgp.accumulateCellFeatures(cellType=2,image=lab,features='Mean')[0]['Mean']
-feat = feat.reshape([cgp.numCells(2),-1]).astype(numpy.float32)
-
-hc = HierarchicalClustering(cgp=cgp)
-hc.segment(feat,100)
-mcgp,mtgrid = hc.mergedCgp()
-
-cgp2d.visualize(imgBigRGB,cgp=mcgp)
-cgp = mcgp
-
-print "accumulate cell feat"
-feat = cgp.accumulateCellFeatures(cellType=2,image=lab,features='Mean')[0]['Mean']
-feat = feat.reshape([cgp.numCells(2),-1]).astype(numpy.float32)
 
 
-#feat = normCProbFlat(hist)
-print feat.shape
 
-
-edge=cgp.cell2ToCell1Feature(feat,mode='l2')
-print edge.min(),edge.max()
-
-e1=numpy.exp(-0.00023*edge)
-e0=1.0-e1
-w=e1-e0
+aggloCut = AggloCut(initCgp=cgp,edgeImage=grad,rgbImage=imgBigRGB)
+aggloCut.infer(gammas=[2.0,1.5,1.0],deleteN=20)
 
 
 
 
-cgc,gm  = multicutFromCgp2(cgp=cgp,e0=e0,e1=e1,parameter=opengm.InfParam(planar=True,inferMinMarginals=False))
+
+
+
+
+
+
+
+
+cgc,gm 	= multicutFromCgp(cgp=cgp,weights=weights,parameter=opengm.InfParam(planar=True,inferMinMarginals=True))
+#cgc,gm  = multicutFromCgp2(cgp=cgp,e0=e0,e1=e1,parameter=opengm.InfParam(planar=True,inferMinMarginals=False))
 nFac    = cgp.numCells(1)
 nVar    = cgp.numCells(2)
 
@@ -91,7 +94,7 @@ argDual = cgc.argDual()
 
 cgp2d.visualize(imgBigRGB,cgp=cgp,edge_data_in=p1.astype(numpy.float32))
 
-sys.exit()
+sys.exit(1)
 
 
 
