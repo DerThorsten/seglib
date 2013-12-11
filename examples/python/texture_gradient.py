@@ -9,7 +9,7 @@ from seglib.preprocessing import norm01,normC01
 
 # change me to your path
 img = "/home/tbeier/src/privatOpengm/experiments/datasets/bsd500/BSR/BSDS500/data/images/test/226033.jpg"
-
+img="img/zebra.jpg"
 
 def imgStd(img,simga):
 

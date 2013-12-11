@@ -152,24 +152,28 @@ class AggloCut(object):
 
 			# get the weights for this gamma
 			#weights = gradientToWeight(self.edgeImage,gamma)
-			edge = self.iterCgp.accumulateCellFeatures(cellType=1,image=self.edgeImage,features='Mean')[0]['Mean']
+			
 
-			e1=numpy.exp(-gamma*edge)
-			e0=1.0-e1
+	
 			#w=e1-e0
 			cuts=True
 			while(cuts):
-
+				edge = self.iterCgp.accumulateCellFeatures(cellType=1,image=self.edgeImage,features='Mean')[0]['Mean']
 				cuts=False
+				e1=numpy.exp(-gamma*edge)
+				e0=1.0-e1
+
 				cgc,gm 	= multicutFromCgp2(cgp=self.iterCgp,e0=e0,e1=e1,parameter=opengm.InfParam(planar=True,inferMinMarginals=True))
-				deleteN = int(float(self.iterCgp.numCells(1))**(0.5)+0.5)
+				deleteN = 1#2*int(float(self.iterCgp.numCells(1))**(0.5)+0.5)
 				cgc.infer(cgc.verboseVisitor())
 				argDual = cgc.argDual()
 				if(argDual.min()==1):
 					print "READ GAMMA"
 					break
+				else:
+					cuts=True
 
-				cgp2d.visualize(self.rgbImage,cgp=self.iterCgp,edge_data_in=argDual.astype(numpy.float32))
+				#cgp2d.visualize(self.rgbImage,cgp=self.iterCgp,edge_data_in=argDual.astype(numpy.float32))
 				factorMinMarginals = cgc.factorMinMarginals()
 
 				m0 = factorMinMarginals[:,0].astype(numpy.float128)
@@ -178,7 +182,7 @@ class AggloCut(object):
 				m1*=-1.0
 				p0 =  numpy.exp(m0)/(numpy.exp(m0)+numpy.exp(m1))
 				p1 =  numpy.exp(m1)/(numpy.exp(m0)+numpy.exp(m1))
-				cgp2d.visualize(self.rgbImage,cgp=self.iterCgp,edge_data_in=p1.astype(numpy.float32))
+				#cgp2d.visualize(self.rgbImage,cgp=self.iterCgp,edge_data_in=p1.astype(numpy.float32))
 
 				whereOn = numpy.where(argDual==1)
 				nOn   = len(whereOn[0])
@@ -195,7 +199,9 @@ class AggloCut(object):
 				
 				cellStates = numpy.ones(self.iterCgp.numCells(1),dtype=numpy.uint32)
 				cellStates[sortedIndex[:toDelete]]=0
-				cgp2d.visualize(self.rgbImage,cgp=self.iterCgp,edge_data_in=cellStates.astype(numpy.float32))
+				
+				if self.iterCgp.numCells(2)<50:
+					cgp2d.visualize(self.rgbImage,cgp=self.iterCgp)
 
 				print "merge cells"
 				newtgrid = self.iterCgp.merge2Cells(cellStates)

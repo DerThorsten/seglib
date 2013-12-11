@@ -11,7 +11,7 @@ from seglib.region_descriptors.pixel.sift import denseSift
 
 img = "img/text.jpg"
 img = "img/108005.jpg"
-
+img="img/zebra.jpg"
 img 	  = numpy.squeeze(vigra.readImage(img))#[0:75,0:75,:]
 gradmag   = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(img,sigma=2.0))
 
