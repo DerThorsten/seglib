@@ -137,16 +137,18 @@ def multicutFromCgp2(cgp,e0,e1,parameter=None):
 
 
 class AggloCut(object):
-	def __init__(self,initCgp,edgeImage,rgbImage):
-		self.initCgp   = initCgp
-		self.edgeImage = edgeImage
-		self.rgbImage  = rgbImage
-
+	def __init__(self,initCgp,edgeImage,featureImage,rgbImage,siftImage,histImage):
+		self.initCgp   		= initCgp
+		self.edgeImage 		= edgeImage
+		self.featureImage 	= featureImage
+		self.rgbImage  		= rgbImage
+		self.siftImage 		= siftImage
+		self.histImage		= histImage
 		#
 		self.iterCgp   = initCgp
 
 	def infer(self,gammas,deleteN):
-
+		cgp2d.visualize(self.rgbImage,cgp=self.iterCgp)
 
 		for gamma in gammas:
 
@@ -157,53 +159,94 @@ class AggloCut(object):
 	
 			#w=e1-e0
 			cuts=True
-			while(cuts):
+			while(True):
 				edge = self.iterCgp.accumulateCellFeatures(cellType=1,image=self.edgeImage,features='Mean')[0]['Mean']
+				feat = self.iterCgp.accumulateCellFeatures(cellType=2,image=self.featureImage,features='Mean')[0]['Mean']
+				sift = self.iterCgp.accumulateCellFeatures(cellType=2,image=self.siftImage,features='Mean')[0]['Mean']
+				hist = self.iterCgp.accumulateCellFeatures(cellType=2,image=self.histImage,features='Mean')[0]['Mean']
+				featDiff = numpy.sqrt(self.iterCgp.cell2ToCell1Feature(feat,mode='l2'))/10.0
+				siftDiff = (self.iterCgp.cell2ToCell1Feature(sift,mode='chi2'))*10
+				histDiff = (self.iterCgp.cell2ToCell1Feature(hist,mode='chi2'))*10
+				print 'featMax',featDiff.min(),featDiff.max()
+				print 'edgeMax',edge.min(),edge.max()
+				print 'sift',siftDiff.min(),siftDiff.max()
+				print 'hist',histDiff.min(),histDiff.max()
+				edge+=0.1*featDiff
+				edge+=1.0*siftDiff
+				edge+=1.0*histDiff
+
+
+
+
+
 				cuts=False
 				e1=numpy.exp(-gamma*edge)
 				e0=1.0-e1
+				for ci in range(self.iterCgp.numCells(1)):
+					size = len(self.iterCgp.cells1[ci].points)
+					#print size
+					e0[ci]*=float(size)
+					e1[ci]*=float(size)
+				w = e1-e0
+				"""
+				for ci in range(self.iterCgp.numCells(1)):
+					bb = len(self.iterCgp.cells1[ci].boundedBy)
+					if bb==0 :
+						print "ZERO BOUNDS \n\n"
+					edge[ci]+=10.0
+				"""
 
-				cgc,gm 	= multicutFromCgp2(cgp=self.iterCgp,e0=e0,e1=e1,parameter=opengm.InfParam(planar=True,inferMinMarginals=True))
-				deleteN = 1#2*int(float(self.iterCgp.numCells(1))**(0.5)+0.5)
-				cgc.infer(cgc.verboseVisitor())
-				argDual = cgc.argDual()
-				if(argDual.min()==1):
-					print "READ GAMMA"
-					break
-				else:
-					cuts=True
-
-				#cgp2d.visualize(self.rgbImage,cgp=self.iterCgp,edge_data_in=argDual.astype(numpy.float32))
-				factorMinMarginals = cgc.factorMinMarginals()
-
-				m0 = factorMinMarginals[:,0].astype(numpy.float128)
-				m1 = factorMinMarginals[:,1].astype(numpy.float128)
-				m0*=-1.0
-				m1*=-1.0
-				p0 =  numpy.exp(m0)/(numpy.exp(m0)+numpy.exp(m1))
-				p1 =  numpy.exp(m1)/(numpy.exp(m0)+numpy.exp(m1))
-				#cgp2d.visualize(self.rgbImage,cgp=self.iterCgp,edge_data_in=p1.astype(numpy.float32))
-
-				whereOn = numpy.where(argDual==1)
-				nOn   = len(whereOn[0])
-				nOff  = len(p0)-nOn
-				print "nOn",nOn,"off",nOff
-
-
-				p1[whereOn]+=100.0
-				sortedIndex = numpy.argsort(p1)
-
-				toDelete = deleteN
-				if deleteN > nOff:
-					toDelete = nOff
+				if False:
 				
-				cellStates = numpy.ones(self.iterCgp.numCells(1),dtype=numpy.uint32)
-				cellStates[sortedIndex[:toDelete]]=0
-				
+					cgc,gm 	= multicutFromCgp2(cgp=self.iterCgp,e0=e0,e1=e1,parameter=opengm.InfParam(planar=True,inferMinMarginals=True))
+					deleteN = 1#2*int(float(self.iterCgp.numCells(1))**(0.5)+0.5)
+					#cgc.infer(cgc.verboseVisitor())
+					cgc.infer()
+					argDual = cgc.argDual()
+					if(argDual.min()==1):
+						print "READ GAMMA"
+						gamma*=0.9
+						continue
+					else:
+						cuts=True
+
+					#cgp2d.visualize(self.rgbImage,cgp=self.iterCgp,edge_data_in=argDual.astype(numpy.float32))
+					factorMinMarginals = cgc.factorMinMarginals()
+
+					m0 = factorMinMarginals[:,0].astype(numpy.float128)
+					m1 = factorMinMarginals[:,1].astype(numpy.float128)
+					m0*=-1.0
+					m1*=-1.0
+					p0 =  numpy.exp(m0)/(numpy.exp(m0)+numpy.exp(m1))
+					p1 =  numpy.exp(m1)/(numpy.exp(m0)+numpy.exp(m1))
+					#cgp2d.visualize(self.rgbImage,cgp=self.iterCgp,edge_data_in=p1.astype(numpy.float32))
+
+					whereOn = numpy.where(argDual==1)
+					nOn   = len(whereOn[0])
+					nOff  = len(p0)-nOn
+					print "nOn",nOn,"off",nOff
+
+
+					p1[whereOn]+=100.0
+					sortedIndex = numpy.argsort(p1)
+
+					toDelete = 1
+					if deleteN > nOff:
+						toDelete = nOff
+					
+					cellStates = numpy.ones(self.iterCgp.numCells(1),dtype=numpy.uint32)
+					cellStates[sortedIndex[:toDelete]]=0
+					#cellStates[numpy.argmax(w)]=0
+					print "argmax"
+				else :
+					cellStates = numpy.ones(self.iterCgp.numCells(1),dtype=numpy.uint32)
+					#cellStates[sortedIndex[:toDelete]]=0
+					cellStates[numpy.argmax(w)]=0
+
 				if self.iterCgp.numCells(2)<50:
 					cgp2d.visualize(self.rgbImage,cgp=self.iterCgp)
 
-				print "merge cells"
+				print "merge cells",self.iterCgp.numCells(2),self.iterCgp.numCells(1)
 				newtgrid = self.iterCgp.merge2Cells(cellStates)
 				self.iterCgp  = cgp2d.Cgp(newtgrid)
 

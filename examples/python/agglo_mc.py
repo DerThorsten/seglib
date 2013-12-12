@@ -9,12 +9,14 @@ import pylab
 import sys
 from optparse import OptionParser
 import inspect
-
-
+from seglib.region_descriptors.pixel.sift import denseSift
+from seglib.histogram import jointHistogram,histogram
 
 img = "img/37073.jpg"
 img="img/42049.jpg"
 img="/home/tbeier/src/seglib/examples/python/img/lena.bmp"
+img="/home/tbeier/src/seglib/examples/python/img/t.jpg"
+img="/home/tbeier/src/privatOpengm/experiments/100075.jpg"
 #img="img/zebra.jpg"
 img = numpy.squeeze(vigra.readImage(img))#[0:75,0:75,:]
 lab = vigra.colors.transform_RGB2Lab(img)
@@ -23,12 +25,18 @@ labels = vigra.analysis.labelImage(labels).astype(numpy.uint64)
 cgp,tgrid = cgp2d.cgpFromLabels(labels)
 imgBig = vigra.sampling.resize(lab,cgp.shape)
 imgBigRGB = vigra.sampling.resize(img,cgp.shape)
-grad = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(imgBig,4.5))+0.1
-#pylab.imshow(grad)
+grad = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(imgBig,2.0))
+
+
+hist = histogram(lab,bins=30,r=2,sigma=[2.0,3.0])
+hist = normCProb(reshapeToImage(hist,lab.shape))
+
+#pylab.imshow(hist[:,:,0])
 #pylab.show()
 print cgp.numCells(2),cgp.numCells(1)
 
-
+siftImg = denseSift(lab[:,:,0])
+siftImg = normCProb(siftImg)
 
 if True:
 	print "accumulate cell feat"
@@ -36,7 +44,7 @@ if True:
 	feat = feat.reshape([cgp.numCells(2),-1]).astype(numpy.float32)
 
 	hc = HierarchicalClustering(cgp=cgp)
-	hc.segment(feat,100)
+	hc.segment(feat,300)
 	mcgp,mtgrid = hc.mergedCgp()
 
 
@@ -46,8 +54,8 @@ print cgp.numCells(2),cgp.numCells(1)
 
 
 
-aggloCut = AggloCut(initCgp=cgp,edgeImage=grad,rgbImage=imgBigRGB)
-aggloCut.infer(gammas=[2.0,1.5,1.0,0.75,0.5,0.2],deleteN=1)
+aggloCut = AggloCut(initCgp=cgp,edgeImage=grad,featureImage=imgBig,rgbImage=imgBigRGB,siftImage=siftImg,histImage=hist)
+aggloCut.infer(gammas=[0.2],deleteN=1)
 
 
 
