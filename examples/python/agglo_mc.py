@@ -17,7 +17,10 @@ img="img/42049.jpg"
 img="/home/tbeier/src/seglib/examples/python/img/lena.bmp"
 img="/home/tbeier/src/seglib/examples/python/img/t.jpg"
 img="/home/tbeier/src/privatOpengm/experiments/100075.jpg"
-#img="img/zebra.jpg"
+img="/home/tbeier/src/privatOpengm/experiments/datasets/bsd500/BSR/BSDS500/data/images/train/118035.jpg"
+img="/home/tbeier/src/privatOpengm/experiments/datasets/bsd500/BSR/BSDS500/data/images/train/118020.jpg"
+img="/home/tbeier/src/privatOpengm/experiments/datasets/bsd500/BSR/BSDS500/data/images/train/156079.jpg"
+img="/home/tbeier/src/privatOpengm/experiments/datasets/bsd500/BSR/BSDS500/data/images/train/277095.jpg"
 img = numpy.squeeze(vigra.readImage(img))#[0:75,0:75,:]
 lab = vigra.colors.transform_RGB2Lab(img)
 labels ,nseg= vigra.analysis.slicSuperpixels(lab,10.0,5)
@@ -28,7 +31,7 @@ imgBigRGB = vigra.sampling.resize(img,cgp.shape)
 grad = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(imgBig,2.0))
 
 
-hist = histogram(lab,bins=30,r=2,sigma=[2.0,3.0])
+hist = histogram(lab,bins=30,r=5,sigma=[2.0,5.0])
 hist = normCProb(reshapeToImage(hist,lab.shape))
 
 #pylab.imshow(hist[:,:,0])

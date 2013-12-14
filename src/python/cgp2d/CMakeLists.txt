@@ -15,6 +15,7 @@ add_library(_cgp2d SHARED
     cells/py_cell2vec.cxx
     py_cgp2d.cxx
     py_hl_objective.cxx
+    py_dgraph.cxx
     py_drag.cxx
     # image processing related 
     misc/py_segcompare.cxx

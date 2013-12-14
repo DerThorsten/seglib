@@ -173,7 +173,7 @@ class AggloCut(object):
 				print 'hist',histDiff.min(),histDiff.max()
 				edge+=0.1*featDiff
 				edge+=1.0*siftDiff
-				edge+=1.0*histDiff
+				edge+=3.0*histDiff
 
 
 
@@ -187,16 +187,25 @@ class AggloCut(object):
 					#print size
 					e0[ci]*=float(size)
 					e1[ci]*=float(size)
-				w = e1-e0
-				"""
+				
+				
 				for ci in range(self.iterCgp.numCells(1)):
 					bb = len(self.iterCgp.cells1[ci].boundedBy)
 					if bb==0 :
 						print "ZERO BOUNDS \n\n"
-					edge[ci]+=10.0
-				"""
+						#e0[ci]*=float(size)
+						e1[ci]+=2.0
 
-				if False:
+				for ci in range(self.iterCgp.numCells(2)):
+					size = len(self.iterCgp.cells1[ci].points)
+					if size<=200 :
+						boundedBy=numpy.array(self.iterCgp.cells2[ci].boundedBy)-1
+						e1[boundedBy]+=2.0
+
+
+				w = e1-e0
+
+				if True:
 				
 					cgc,gm 	= multicutFromCgp2(cgp=self.iterCgp,e0=e0,e1=e1,parameter=opengm.InfParam(planar=True,inferMinMarginals=True))
 					deleteN = 1#2*int(float(self.iterCgp.numCells(1))**(0.5)+0.5)

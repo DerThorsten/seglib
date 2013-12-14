@@ -18,6 +18,7 @@
 
 #include "py_cgp2d.hxx"
 #include "py_drag.hxx"
+#include "py_dgraph.hxx"
 #include "py_hl_objective.hxx"
 
 // misc
@@ -45,6 +46,9 @@ BOOST_PYTHON_MODULE_INIT(_cgp2d) {
     cgp2d::export_cell0vec();
     cgp2d::export_cell1vec();
     cgp2d::export_cell2vec();
+
+    //  dynamic graph
+    cgp2d::export_dgraph();
 
     //  dynamic rag
     cgp2d::export_drag();
