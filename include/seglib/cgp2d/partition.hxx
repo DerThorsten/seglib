@@ -31,6 +31,15 @@ public:
    void merge(value_type, value_type);
    void insert(const value_type&);
 
+   template<class ITER>
+   value_type multiMerge(const value_type a,ITER begin,ITER end){
+      while(begin!=end){
+         this->merge(a,*begin);
+         ++begin;
+      }
+      return this->find(a);
+   }
+
 private:
    std::vector<value_type> parents_;
    std::vector<value_type> ranks_;

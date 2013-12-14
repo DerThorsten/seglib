@@ -8,10 +8,10 @@
 #include <vigra/numpy_array_converters.hxx>
 
 #include "seglib/cgp2d/cgp2d.hxx"
-#include "seglib/cgp2d/dynamic_graph.hxx"
 #include "seglib/cgp2d/cgp2d_python.hxx"
-#include "seglib/cgp2d/objectives/high_level.hxx"
-#include "seglib/distances/distance.hxx"
+
+#include "seglib/cgp2d/dynamic_graph.hxx"
+#include "seglib/cgp2d/maps/edge_feature_map.hxx"
 
 
 namespace cgp2d {
@@ -20,6 +20,30 @@ namespace boostp = boost::python;
 
 
 
+
+
+
+
+vigra::NumpyAnyArray stateOfInitalEdges(
+    const DynamicGraph & dgraph, 
+    vigra::NumpyArray<1 , LabelType> res = vigra::NumpyArray<1,LabelType >()
+){
+    const size_t initNumberOfEdges=dgraph.initNumberOfEdges();
+    res.reshapeIfEmpty(vigra::NumpyArray<1 , LabelType>::difference_type(initNumberOfEdges));
+    dgraph.stateOfInitalEdges(res.begin(),res.end());
+    return res;
+}
+
+
+vigra::NumpyAnyArray activeEdgeLabels(
+    const DynamicGraph & dgraph, 
+    vigra::NumpyArray<1 , LabelType> res = vigra::NumpyArray<1,LabelType >()
+){
+    const size_t numberOfEdges=dgraph.numberOfEdges();
+    res.reshapeIfEmpty(vigra::NumpyArray<1 , LabelType>::difference_type(numberOfEdges));
+    dgraph.activeEdgeLabels(res.begin(),res.end());
+    return res;
+}
 
 
 void setInitalEdges(
@@ -60,11 +84,11 @@ VEC_MAP * vecMapFactory(DynamicGraph & dgraph,const size_t size,const bool nodeM
 */
 
 
-template<class MAP_TYPE>
+template<class MAP_TYPE,unsigned int FDIM>
 MAP_TYPE * featureMapConstructor(
     DynamicGraph & dgraph,
-    vigra::MultiArrayView<2,typename  MAP_TYPE::value_type >    features,
-    vigra::MultiArrayView<1,size_t>                             edgeSize
+    vigra::MultiArrayView<FDIM,typename  MAP_TYPE::value_type >    features,
+    vigra::MultiArrayView<1,size_t>                                 edgeSize
 ){
     return new MAP_TYPE(dgraph,features,edgeSize);
 }
@@ -118,6 +142,18 @@ void export_dgraph()
         )
         .def("mergeParallelEdges",&DynamicGraph::mergeParallelEdges,"merge parallel / double edges")
         .def("mergeRegions",&DynamicGraph::mergeRegions,"mergeTwoRegions")
+        .def("stateOfInitalEdges",vigra::registerConverters(&stateOfInitalEdges),
+            (
+                boostp::arg("out")=boostp::object()
+            ),
+            "get edge state remapped on inital edges"
+        )
+        .def("activeEdgeLabels",vigra::registerConverters(&activeEdgeLabels),
+            (
+                boostp::arg("out")=boostp::object()
+            ),
+            "activeEdgeLabels"
+        )
     ;
 
 
@@ -135,14 +171,22 @@ void export_dgraph()
 
 
     typedef EdgeFeatureMap<float> EdgeFeatureMapFloat;
+    typedef EdgeUcmMap<float>     EdgeUcmMap;
 
 
-    
     boostp::class_<EdgeFeatureMapFloat, boostp::bases<EdgeMapBaseWrap> >(
         "EdgeFeatureMapFloat",boostp::init< >()
     )
-        .def( "__init__",boostp::make_constructor(vigra::registerConverters(& featureMapConstructor<EdgeFeatureMapFloat>)))
+        .def( "__init__",boostp::make_constructor(vigra::registerConverters(& featureMapConstructor<EdgeFeatureMapFloat,2>)))
     ;
+
+    boostp::class_<EdgeUcmMap, boostp::bases<EdgeMapBaseWrap> >(
+        "EdgeUcmMap",boostp::init< DynamicGraph & >()
+    )
+        .def( "__init__",boostp::make_constructor(vigra::registerConverters(& featureMapConstructor<EdgeUcmMap,1>)))
+        .def("minEdge",&EdgeUcmMap::minEdge,"get the edge with minimum edge indicator")
+    ;
+
 
     // factory
     //boostp::def("floatVecMap",&vecMapFactory<FloatVecMap>, boostp::return_value_policy<boostp::manage_new_object>() );
