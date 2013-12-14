@@ -94,6 +94,18 @@ MAP_TYPE * featureMapConstructor(
 }
 
 
+template<class MAP_TYPE>
+vigra::NumpyAnyArray computeUcmFeatures(
+    const MAP_TYPE & map,
+    vigra::NumpyArray<1 , float> res = vigra::NumpyArray<1,float >()
+){
+    const size_t numberOfEdges=map.dgraph().initNumberOfEdges();
+    res.reshapeIfEmpty(vigra::NumpyArray<1 , float>::difference_type(numberOfEdges));
+    map.computeUcmFeatures(res.begin(),res.end());
+    return res;
+}
+
+
 void export_dgraph()
 {
     //using namespace python;
@@ -185,6 +197,12 @@ void export_dgraph()
     )
         .def( "__init__",boostp::make_constructor(vigra::registerConverters(& featureMapConstructor<EdgeUcmMap,1>)))
         .def("minEdge",&EdgeUcmMap::minEdge,"get the edge with minimum edge indicator")
+        .def("computeUcmFeatures",vigra::registerConverters(&computeUcmFeatures<EdgeUcmMap>),
+            (
+                boostp::arg("out")=boostp::object()
+            ),
+            "compute ucm transformation"
+        )
     ;
 
 

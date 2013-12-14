@@ -515,9 +515,12 @@ void DynamicGraph::mergeRegions(const size_t toDeleteEdgeIndex){
             // call merge for edge maps
             for(size_t m=0;m<edgeMaps_.size();++m){
                 edgeMaps_[m]->merge(edgeVec,newEdgeRep);
-                edgeMaps_[m]->erase(toDeleteEdgeIndex);
             }
         } 
+    }
+    // call erase for edge maps
+    for(size_t m=0;m<edgeMaps_.size();++m){
+        edgeMaps_[m]->erase(toDeleteEdgeIndex);
     }
 
 
