@@ -168,6 +168,35 @@ namespace minmax{
             }
         }
 
+        FloatPq(const size_t size,const float scale=1000000)
+        :   scale_(scale),
+            initSize_(size),
+            values_(size),
+            iValues_(size),
+            activeKey_(size,1),
+            pq_(size)
+        {
+
+        }
+
+        template<class ITER>
+        void setValues(ITER begin, ITER end)
+        {
+            values_.assign(begin,end);
+            for(size_t index=0;index<initSize_;++index){
+                const float rawVal = values_[index];
+                CGP_ASSERT_OP(rawVal,>=,0.0);
+                CGP_ASSERT_OP(rawVal,<=,10.0);
+
+                const float scaled = rawVal*scale_;
+                const vigra::UInt64 iVal  = static_cast<vigra::UInt64>(scaled+0.5);
+                iValues_[index]=iVal;
+
+                // register iVal as key for index
+                pq_.insert(index,iVal);
+            }
+        }
+
         void changeValue(const size_t index,const float newVal){
             CGP_ASSERT_OP(pq_.contains(index),==,true);
             CGP_ASSERT_OP(activeKey_[index],<=,1);

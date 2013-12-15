@@ -825,7 +825,8 @@ def visualize(
     edge_data_in=None,
     show=True,
     cmap=cm.jet,
-    title=None
+    title=None,
+    black=False
 ):
     img_rgb_raw=img_rgb.copy()
     if edge_data_in is not None:
@@ -875,6 +876,8 @@ def visualize(
         #print " shape ",colorArray.shape
         #print colorArray
         #img*=255
+        if black:
+          img[:]=0.0
         img[whereEdges[0],whereEdges[1],0]=colorArray[:,0]
         img[whereEdges[0],whereEdges[1],1]=colorArray[:,1]
         img[whereEdges[0],whereEdges[1],2]=colorArray[:,2]
@@ -891,7 +894,6 @@ def visualize(
 
       #cedge[cedge!=0]=0
       whereEdges=numpy.where(cedge==0)
-
       #img/=255
       img[whereEdges[0],whereEdges[1],0]=0.0
       img[whereEdges[0],whereEdges[1],1]=0.0

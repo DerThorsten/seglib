@@ -45,6 +45,8 @@ class NodeMapBase;
 class DgraphNode{
 
 public:
+    typedef std::set<size_t>::const_iterator EdgeIterator;
+
     // query
     size_t numberOfEdges()const{return edges_.size();}
 
@@ -61,6 +63,15 @@ public:
         edges_.erase(removeEdge);
         edges_.insert(insertEdge);
     }
+
+    EdgeIterator edgesBegin()const{
+        return edges_.begin();
+    }
+    EdgeIterator edgesEnd()const{
+        return edges_.end();
+    }
+
+
 //private:    
     std::set<size_t> edges_;
 
@@ -76,6 +87,12 @@ public:
     size_t otherNode(const size_t node)const{
         CGP_ASSERT_OP(hasNode(node),==,true);
         return (node==first ? second : first);
+    }
+    size_t operator[](const size_t i)const{
+        return (i==0 ? first : second);
+    }
+    size_t operator[](const size_t i){
+        return (i==0 ? first : second);
     }
 //private:
     size_t first;
@@ -103,6 +120,19 @@ public:
     size_t numberOfEdges()const;
     size_t initNumberOfNodes()const;
     size_t initNumberOfEdges()const;
+
+
+    const EdgeType & getInitalEdge(const size_t index){
+        return initEdges_[index];
+    }
+
+    const EdgeType & getEdge(const size_t index){
+        return dynamicEdges_[index];
+    }
+    const NodeType & getNode(const size_t index){
+        return dynamicNodes_[index];
+    }
+
 
 
     bool hasEdge(const size_t edgeIndex)const{
@@ -215,7 +245,7 @@ public:
         dgraph.registerMap(this);
     }
     virtual void merge(const std::vector<size_t> & toMerge,const size_t newIndex)=0;
-    virtual void erase(const size_t index)=0;
+    virtual void erase(const size_t index,const size_t newNodeIndex)=0;
 };
 
 
@@ -520,7 +550,7 @@ void DynamicGraph::mergeRegions(const size_t toDeleteEdgeIndex){
     }
     // call erase for edge maps
     for(size_t m=0;m<edgeMaps_.size();++m){
-        edgeMaps_[m]->erase(toDeleteEdgeIndex);
+        edgeMaps_[m]->erase(toDeleteEdgeIndex,newNodeRep);
     }
 
 

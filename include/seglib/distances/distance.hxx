@@ -51,8 +51,6 @@ namespace dist{
 				const T bb=static_cast<T>(b(i));
 				const T diff = aa-bb;
 				res+=diff*diff;	
-
-
 			}
 			return res;
 		}
