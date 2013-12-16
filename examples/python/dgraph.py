@@ -14,7 +14,7 @@ img="img/42049.jpg"
 #img="img/zebra.jpg"
 img = numpy.squeeze(vigra.readImage(img))#[0:75,0:75,:]
 lab = vigra.colors.transform_RGB2Lab(img)
-labels ,nseg= vigra.analysis.slicSuperpixels(lab,10.0,2)
+labels ,nseg= vigra.analysis.slicSuperpixels(lab,10.0,4)
 labels = vigra.analysis.labelImage(labels).astype(numpy.uint64)
 #grad =vigra.filters.gaussianGradientMagnitude(lab,1.5)
 #labels,nseg =vigra.analysis.watersheds(grad)
@@ -31,43 +31,6 @@ grad = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(imgBig,1.5))
 #cgp2d.visualize(imgBigRGB,cgp=cgp)
 
 
-
-
-def tinyUcm(cgp,grad,imgBigRGB):
-	dgraph=cgp2d.DynamicGraph(numberOfNodes=cgp.numCells(2),numberOfEdges=cgp.numCells(1))
-
-
-	print "create maps"
-	feat   = cgp.accumulateCellFeatures(cellType=1,image=grad,features='Mean')[0]['Mean'].reshape([-1,1]).astype(numpy.float32)
-	feat   = cgp.accumulateCellFeatures(cellType=1,image=grad,features='Mean')[0]['Mean'].astype(numpy.float32)
-	feat 	= norm01(feat)*0.99 + 0.005
-	sizes   = numpy.ones(cgp.numCells(1),dtype=numpy.uint64)
-	edgeMap = cgp2d.EdgeUcmMap(dgraph,feat,sizes)
-
-	print "set inital edges"
-	initEdges = cgp.cell1BoundsArray().astype(numpy.uint64)-1
-	dgraph.setInitalEdges(initEdges)
-
-	print "mergeParallelEdges"
-	dgraph.mergeParallelEdges()
-
-	c=1
-	while(dgraph.numberOfEdges()>0):
-		print "reg / edges",dgraph.numberOfNodes(),dgraph.numberOfEdges()
-
-		#activeEdgeLabels=dgraph.activeEdgeLabels()
-		#argmin = numpy.argmin(feat[activeEdgeLabels])
-		minEdge=edgeMap.minEdge()
-
-
-		#anEdge=dgraph.getAndEdge()
-		dgraph.mergeRegions(long(minEdge))
-		c+=1
-		if dgraph.numberOfNodes()==1 :
-			#state = dgraph.stateOfInitalEdges().astype(numpy.float32)
-			ucmFeatures = edgeMap.computeUcmFeatures()
-			cgp2d.visualize(imgBigRGB,cgp=cgp,edge_data_in=ucmFeatures)
-			return ucmFeatures
 
 
 
@@ -99,12 +62,12 @@ def tinyAggl(cgp,grad,imgBig,imgBigRGB,beta):
 	print "create node maps A"
 	nodeFeat = cgp.accumulateCellFeatures(cellType=2,image=imgBig,features='Mean')[0]['Mean'].astype(numpy.float32)
 	nodeSize = numpy.ones(cgp.numCells(2),dtype=numpy.uint32)
-	nodeMapA  = cgp2d.NodeFeatureMap(dgraph,nodeFeat,nodeSize)
+	nodeMapA  = cgp2d.nodeFeatureMap(dgraph,nodeFeat,nodeSize,"norm")
 
 	print "create node maps B"
-	nodeFeat = cgp.accumulateCellFeatures(cellType=2,image=imgBig,features='Mean')[0]['Mean'].astype(numpy.float32)
+	nodeFeat = cgp.accumulateCellFeatures(cellType=2,image=imgBigRGB,features='Mean')[0]['Mean'].astype(numpy.float32)
 	nodeSize = numpy.ones(cgp.numCells(2),dtype=numpy.uint32)
-	nodeMapB  = cgp2d.NodeFeatureMap(dgraph,nodeFeat,nodeSize)
+	nodeMapB  = cgp2d.nodeFeatureMap(dgraph,nodeFeat,nodeSize,"norm")
 
 
 
@@ -142,7 +105,7 @@ def tinyAggl(cgp,grad,imgBig,imgBigRGB,beta):
 		dgraph.mergeRegions(long(minEdge))
 		c+=1
 
-		if dgraph.numberOfNodes()==0 :
+		if dgraph.numberOfNodes()==100 :
 			state 				= dgraph.stateOfInitalEdges().astype(numpy.float32)
 			cgp2d.visualize(imgBigRGB,cgp=cgp,edge_data_in=state,black=True,cmap='jet')
 		if dgraph.numberOfNodes()==1 :
@@ -152,4 +115,4 @@ def tinyAggl(cgp,grad,imgBig,imgBigRGB,beta):
 			return ucmFeatures
 
 
-tinyAggl(cgp=cgp,grad=grad,imgBig=imgBig,imgBigRGB=imgBigRGB,beta=0.75)
+tinyAggl(cgp=cgp,grad=grad,imgBig=imgBig,imgBigRGB=imgBigRGB,beta=0.95)

@@ -13,7 +13,7 @@
 #include "seglib/cgp2d/dynamic_graph.hxx"
 #include "seglib/cgp2d/maps/node_maps.hxx"
 #include "seglib/cgp2d/maps/edge_maps.hxx"
-
+#include "seglib/distances/distance.hxx"
 
 namespace cgp2d {
 
@@ -163,6 +163,52 @@ vigra::NumpyAnyArray mapFeaturesToInitalNodes(
 }
 
 
+
+template<class MAP,class BASE_MAP>
+void export_node_feature_map(const std::string & clsName){
+
+    boostp::class_<MAP, boostp::bases< BASE_MAP >  >(
+        clsName.c_str(),boostp::init< DynamicGraph & >()
+    )
+        .def( "__init__",boostp::make_constructor(vigra::registerConverters(& nodeFeatureMapConstructor<MAP,2>)))
+        .def("mapFeaturesToInitalNodes",vigra::registerConverters(&mapFeaturesToInitalNodes<MAP>),
+            (
+                boostp::arg("out")=boostp::object()
+            ),
+            "map merged node features to inital nodes"
+        )
+    ;
+}
+
+template<class T>
+NodeDiffMapBase<T>  * nodeFeatureMapFactory(
+    DynamicGraph & dgraph,
+    vigra::MultiArrayView<2, T >  features,
+    vigra::MultiArrayView<1,vigra::UInt32>                       edgeSize,
+    const std::string & distance
+){
+    if(distance==std::string("norm")){
+        typedef dist::Norm<T> DistFunctor;
+        typedef NodeFeatureMap<T,DistFunctor > NodeMap;
+        return new NodeMap(dgraph,features,edgeSize);
+    }
+    else if(distance==std::string("squaredNorm")){
+        typedef dist::SquaredNorm<T> DistFunctor;
+        typedef NodeFeatureMap<T,DistFunctor > NodeMap;
+        return new NodeMap(dgraph,features,edgeSize);
+    }
+    else if(distance==std::string("chiSquared")){
+        typedef dist::ChiSquared<T> DistFunctor;
+        typedef NodeFeatureMap<T,DistFunctor > NodeMap;
+        return new NodeMap(dgraph,features,edgeSize);
+    }
+    else{
+        throw std::runtime_error("unknown distance");
+    }    
+}
+
+
+
 void export_dgraph()
 {
     //using namespace python;
@@ -251,24 +297,20 @@ void export_dgraph()
     ;
 
 
+    // export factory
+    boostp::def("nodeFeatureMap",vigra::registerConverters(&nodeFeatureMapFactory<float>), boostp::return_value_policy<boostp::manage_new_object>());
 
 
-    typedef NodeFeatureMap<float> NodeFeatureMapFloat;
+    typedef NodeFeatureMap<float,dist::Norm<float> >        NodeFeatureMapNormFloat;
+    typedef NodeFeatureMap<float,dist::SquaredNorm<float> > NodeFeatureMapSquaredNormFloat;
+    typedef NodeFeatureMap<float,dist::ChiSquared<float> >  NodeFeatureMapChiSquaredFloat;
+    export_node_feature_map<NodeFeatureMapNormFloat,        NodeDiffMapBaseWrapFloat>("NodeFeatureMapNorm");
+    export_node_feature_map<NodeFeatureMapSquaredNormFloat, NodeDiffMapBaseWrapFloat>("NodeFeatureMapSquaredNorm");
+    export_node_feature_map<NodeFeatureMapChiSquaredFloat,  NodeDiffMapBaseWrapFloat>("NodeFeatureMapChiSquared");
 
-    boostp::class_<NodeFeatureMapFloat, boostp::bases< NodeDiffMapBaseWrapFloat >  >(
-        "NodeFeatureMap",boostp::init< DynamicGraph & >()
-    )
-        .def( "__init__",boostp::make_constructor(vigra::registerConverters(& nodeFeatureMapConstructor<NodeFeatureMapFloat,2>)))
-        .def("mapFeaturesToInitalNodes",vigra::registerConverters(&mapFeaturesToInitalNodes<NodeFeatureMapFloat>),
-            (
-                boostp::arg("out")=boostp::object()
-            ),
-            "map merged node features to inital nodes"
-        )
-    ;
+
 
     typedef EdgeFeatureMap<float> EdgeFeatureMapFloat;
-
     boostp::class_<EdgeFeatureMapFloat, boostp::bases< EdgeWeightBaseWrapFloat >  >(
         "EdgeFeatureMap",boostp::init< DynamicGraph & >()
     )
@@ -282,8 +324,8 @@ void export_dgraph()
         )
         .def("registerNodeMap",&EdgeFeatureMapFloat::registerNodeMap)
     ;
-       
-
+    
+    
 /*
     typedef EdgeFeatureMap<float> EdgeFeatureMapFloat;
     typedef EdgeUcmMap<float>     EdgeUcmMap;

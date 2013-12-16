@@ -23,7 +23,7 @@ public:
 
 
 
-template<class T>
+template<class T,class DIST_FUNCTOR>
 class NodeFeatureMap : public NodeDiffMapBase<T> {
 
 public:
@@ -49,8 +49,8 @@ private:
 	vigra::MultiArray<1,T> 				   featureBuffer_;	
 };
 
-template<class T>
-NodeFeatureMap<T>::NodeFeatureMap( DynamicGraph & dgraph, vigra::MultiArrayView<2,T>  features, vigra::MultiArrayView<1,vigra::UInt32>  sizes)
+template<class T,class DIST_FUNCTOR>
+NodeFeatureMap<T,DIST_FUNCTOR>::NodeFeatureMap( DynamicGraph & dgraph, vigra::MultiArrayView<2,T>  features, vigra::MultiArrayView<1,vigra::UInt32>  sizes)
 :	NodeDiffMapBase<T>(),
 	dgraph_(dgraph),
 	features_(features),
@@ -60,8 +60,8 @@ NodeFeatureMap<T>::NodeFeatureMap( DynamicGraph & dgraph, vigra::MultiArrayView<
 	CGP_ASSERT_OP(features_.shape(0),==,dgraph_.initNumberOfNodes());
 	this->registerMap(dgraph_);
 }
-template<class T>
-void NodeFeatureMap<T>::merge(const std::vector<size_t> & toMerge,const size_t newIndex){
+template<class T,class DIST_FUNCTOR>
+void NodeFeatureMap<T,DIST_FUNCTOR>::merge(const std::vector<size_t> & toMerge,const size_t newIndex){
 
 	featureBuffer_=static_cast<T>(0);
 	vigra::UInt32 sizeSum=0;
@@ -80,14 +80,16 @@ void NodeFeatureMap<T>::merge(const std::vector<size_t> & toMerge,const size_t n
 	}
 }
 
-template<class T>
-T NodeFeatureMap<T>::nodeDistance(const size_t n0,const size_t n1)const{
-	dist::Norm<T> distFunctor;
+template<class T,class DIST_FUNCTOR>
+T NodeFeatureMap<T,DIST_FUNCTOR>::nodeDistance(const size_t n0,const size_t n1)const{
+	//dist::Norm<T> distFunctor;
+
+	DIST_FUNCTOR distFunctor;
 	return distFunctor(features_.bindInner(n0),features_.bindInner(n1));
 }
 
-template<class T>
-void NodeFeatureMap<T>::mapFeaturesToInitalNodes(vigra::MultiArrayView<2,T> & result)const{
+template<class T,class DIST_FUNCTOR>
+void NodeFeatureMap<T,DIST_FUNCTOR>::mapFeaturesToInitalNodes(vigra::MultiArrayView<2,T> & result)const{
 	for(size_t i=0;i<dgraph_.initNumberOfNodes();++i){
 		const size_t rep=dgraph_.reprNode(i);
 		for(size_t f=0;f<numberOfFeatures();++f){
