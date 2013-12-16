@@ -75,6 +75,20 @@ struct NodeMapBaseWrap : NodeMapBase, boostp::wrapper<NodeMapBase>
         this->get_override("merge")(toMerge,newIndex);
     }
 };
+
+template<class T>
+struct NodeDiffMapBaseWrap : NodeDiffMapBase<T>, boostp::wrapper<NodeDiffMapBase<T> > 
+{
+
+    void merge(const std::vector<size_t> & toMerge,const size_t newIndex){
+        this->get_override("merge")(toMerge,newIndex);
+    }
+    T  nodeDifference(const size_t n0,const size_t n1)const{
+        this->get_override("nodeDifference")(n0,n1);
+    }
+};
+
+
 /*
 template<class VEC_MAP>
 VEC_MAP * vecMapFactory(DynamicGraph & dgraph,const size_t size,const bool nodeMap){
@@ -200,10 +214,17 @@ void export_dgraph()
         .def("erase",boostp::pure_virtual(&EdgeMapBaseWrap::erase))
     ;
 
-    boostp::class_<NodeMapBaseWrap, boost::noncopyable>("NodeMapBase")
+    boostp::class_<NodeMapBaseWrap, boost::noncopyable >("NodeMapBase")
         .def("merge",boostp::pure_virtual(&NodeMapBaseWrap::merge))
     ;
+    typedef NodeDiffMapBaseWrap<float> NodeDiffMapBaseWrapFloat;
+    boostp::class_<NodeDiffMapBaseWrapFloat, boost::noncopyable >("NodeDiffMapBase")
+        .def("merge",boostp::pure_virtual(&NodeDiffMapBaseWrapFloat::merge))
+        .def("nodeDifference",boostp::pure_virtual(&NodeDiffMapBaseWrapFloat::nodeDifference))
+    ;
 
+        
+   
 
 
     typedef EdgeFeatureMap<float> EdgeFeatureMapFloat;
@@ -242,20 +263,21 @@ void export_dgraph()
             "compute ucm transformation"
         )
     ;
-
-    boostp::class_<NodeFeatureMapFloat, boostp::bases<NodeMapBaseWrap> >(
+    
+    boostp::class_<NodeFeatureMapFloat, boostp::bases< NodeDiffMapBaseWrapFloat >  >(
         "NodeFeatureMapFloat",boostp::init< DynamicGraph & >()
     )
         .def( "__init__",boostp::make_constructor(vigra::registerConverters(& featureMapConstructor<NodeFeatureMapFloat,2>)))
+        
+        
         .def("mapFeaturesToInitalNodes",vigra::registerConverters(&mapFeaturesToInitalNodes<NodeFeatureMapFloat>),
             (
                 boostp::arg("out")=boostp::object()
             ),
             "map merged node features to inital nodes"
         )
-
     ;
-
+    
     // factory
     //boostp::def("floatVecMap",&vecMapFactory<FloatVecMap>, boostp::return_value_policy<boostp::manage_new_object>() );
     

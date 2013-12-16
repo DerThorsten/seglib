@@ -88,10 +88,10 @@ public:
         CGP_ASSERT_OP(hasNode(node),==,true);
         return (node==first ? second : first);
     }
-    size_t operator[](const size_t i)const{
+    const size_t & operator[](const size_t i)const{
         return (i==0 ? first : second);
     }
-    size_t operator[](const size_t i){
+    size_t & operator[](const size_t i){
         return (i==0 ? first : second);
     }
 //private:
@@ -129,16 +129,31 @@ public:
     const EdgeType & getEdge(const size_t index){
         return dynamicEdges_[index];
     }
-    const NodeType & getNode(const size_t index){
-        return dynamicNodes_[index];
+
+    // _NEW means better implementation
+    EdgeType getEdge_NEW(const size_t index)const{
+        EdgeType edge = initEdges_[index];
+        edge[0]=reprNode(edge[0]);
+        edge[1]=reprNode(edge[1]);
     }
 
 
+
+
+    const NodeType & getNode(const size_t index){
+        return dynamicNodes_[index];
+    }
 
     bool hasEdge(const size_t edgeIndex)const{
         const bool hasEdge  = dynamicEdges_.find(edgeIndex)!=dynamicEdges_.end();
         return hasEdge;
     }
+
+    bool hasEdge_NEW(const size_t edgeIndex)const{
+        const EdgeType edge=getEdge_NEW(edgeIndex);
+        return edge[0]!=edge[1];
+    }
+
     bool hasNode(const size_t nodeIndex)const{
         const bool hasNode  = dynamicNodes_.find(nodeIndex)!=dynamicNodes_.end();
         return hasNode;
