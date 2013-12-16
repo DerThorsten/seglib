@@ -6,18 +6,18 @@ from seglib.clustering.ce_multicut import *
 from seglib.preprocessing import norm01,normCProb,reshapeToImage,normCProbFlat
 
 img = "img/37073.jpg"
-#img="img/42049.jpg"
+img="img/42049.jpg"
 #img="/home/tbeier/src/seglib/examples/python/img/lena.bmp"
 #img="/home/tbeier/src/seglib/examples/python/img/t.jpg"
-img="/home/tbeier/src/privatOpengm/experiments/100075.jpg"
+#img="/home/tbeier/src/privatOpengm/experiments/100075.jpg"
 #img="/home/tbeier/src/privatOpengm/experiments/datasets/bsd500/BSR/BSDS500/data/images/train/118035.jpg"
 #img="img/zebra.jpg"
 img = numpy.squeeze(vigra.readImage(img))#[0:75,0:75,:]
 lab = vigra.colors.transform_RGB2Lab(img)
-labels ,nseg= vigra.analysis.slicSuperpixels(lab,5.0,5)
+labels ,nseg= vigra.analysis.slicSuperpixels(lab,10.0,2)
 labels = vigra.analysis.labelImage(labels).astype(numpy.uint64)
-grad =vigra.filters.gaussianGradientMagnitude(lab,1.5)
-labels,nseg =vigra.analysis.watersheds(grad)
+#grad =vigra.filters.gaussianGradientMagnitude(lab,1.5)
+#labels,nseg =vigra.analysis.watersheds(grad)
 labels=labels.astype(numpy.uint64)
 
 cgp,tgrid = cgp2d.cgpFromLabels(labels)
@@ -96,16 +96,32 @@ def tinyAggl(cgp,grad,imgBig,imgBigRGB,beta):
 	initEdges = cgp.cell1BoundsArray().astype(numpy.uint64)-1
 	dgraph.setInitalEdges(initEdges)
 
-	print "create node maps"
+	print "create node maps A"
 	nodeFeat = cgp.accumulateCellFeatures(cellType=2,image=imgBig,features='Mean')[0]['Mean'].astype(numpy.float32)
-	nodeSize = numpy.ones(cgp.numCells(2),dtype=numpy.uint64)
-	nodeMap  = cgp2d.NodeFeatureMapFloat(dgraph,nodeFeat,nodeSize)
+	nodeSize = numpy.ones(cgp.numCells(2),dtype=numpy.uint32)
+	nodeMapA  = cgp2d.NodeFeatureMap(dgraph,nodeFeat,nodeSize)
+
+	print "create node maps B"
+	nodeFeat = cgp.accumulateCellFeatures(cellType=2,image=imgBig,features='Mean')[0]['Mean'].astype(numpy.float32)
+	nodeSize = numpy.ones(cgp.numCells(2),dtype=numpy.uint32)
+	nodeMapB  = cgp2d.NodeFeatureMap(dgraph,nodeFeat,nodeSize)
+
+
+
+
+
 
 	print "create edge maps"
-	edgeFeat = cgp.accumulateCellFeatures(cellType=1,image=grad,features='Mean')[0]['Mean'].astype(numpy.float32)
-	edgeFeat = norm01(edgeFeat)*0.99 + 0.005
-	edgeSize = numpy.ones(cgp.numCells(1),dtype=numpy.uint64)
-	edgeMap  = cgp2d.DiffEdgeMap(dgraph,nodeMap,edgeFeat,edgeSize,beta)
+	edgeFeat = cgp.accumulateCellFeatures(cellType=1,image=grad,features='Mean')[0]['Mean'].reshape(-1,1).astype(numpy.float32)
+	#edgeFeat = norm01(edgeFeat)*0.99 + 0.005
+	edgeSize = numpy.ones(cgp.numCells(1),dtype=numpy.uint32)
+
+
+	print "edgeFeat",edgeFeat.shape,edgeFeat.dtype
+	edgeFeat=numpy.array(edgeFeat)
+	edgeMap  = cgp2d.EdgeFeatureMap(dgraph,edgeFeat,edgeSize,beta)
+	edgeMap.registerNodeMap(nodeMapA)
+	edgeMap.registerNodeMap(nodeMapB)
 
 
 	print "mergeParallelEdges"
@@ -113,7 +129,9 @@ def tinyAggl(cgp,grad,imgBig,imgBigRGB,beta):
 
 	c=1
 	while(dgraph.numberOfEdges()>0):
-		print "reg / edges",dgraph.numberOfNodes(),dgraph.numberOfEdges()
+
+		if c%100 == 0:
+			print "reg / edges",dgraph.numberOfNodes(),dgraph.numberOfEdges()
 
 		#activeEdgeLabels=dgraph.activeEdgeLabels()
 		#argmin = numpy.argmin(feat[activeEdgeLabels])
@@ -124,7 +142,7 @@ def tinyAggl(cgp,grad,imgBig,imgBigRGB,beta):
 		dgraph.mergeRegions(long(minEdge))
 		c+=1
 
-		if dgraph.numberOfNodes()==40 :
+		if dgraph.numberOfNodes()==0 :
 			state 				= dgraph.stateOfInitalEdges().astype(numpy.float32)
 			cgp2d.visualize(imgBigRGB,cgp=cgp,edge_data_in=state,black=True,cmap='jet')
 		if dgraph.numberOfNodes()==1 :
@@ -134,4 +152,4 @@ def tinyAggl(cgp,grad,imgBig,imgBigRGB,beta):
 			return ucmFeatures
 
 
-tinyAggl(cgp=cgp,grad=grad,imgBig=imgBig,imgBigRGB=imgBigRGB,beta=0.2)
+tinyAggl(cgp=cgp,grad=grad,imgBig=imgBig,imgBigRGB=imgBigRGB,beta=0.75)

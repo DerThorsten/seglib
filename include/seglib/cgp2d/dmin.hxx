@@ -11,10 +11,10 @@ namespace minmax{
 
 
 
-
+    template<class T>
     class MinIndexedPQ {
-        int NMAX, N, *heap, *index, *keys;
-     
+        int NMAX, N, *heap, *index,; //*keys;
+        T * keys;
         void swap(int i, int j) {
             int t = heap[i]; heap[i] = heap[j]; heap[j] = t;
             index[heap[i]] = i; index[heap[j]] = j;
@@ -45,7 +45,7 @@ namespace minmax{
         MinIndexedPQ(int NMAX)  {
             this->NMAX = NMAX;
             N = 0;
-            keys = new int[NMAX + 1];
+            keys = new T[NMAX + 1];
             heap = new int[NMAX + 1];
             index = new int[NMAX + 1];
             for(int i = 0; i <= NMAX; i++)
@@ -74,7 +74,7 @@ namespace minmax{
         }
      
         // associate key with index i; 0 < i < NMAX
-        void insert(int i, int key) {
+        void insert(int i, T key) {
             N++;
             index[i] = N;
             heap[N] = i;
@@ -88,7 +88,7 @@ namespace minmax{
         }
      
         // returns the minimal key
-        int minKey()    {
+        T minKey()    {
             return keys[heap[1]];
         }
      
@@ -104,25 +104,25 @@ namespace minmax{
         }
      
         // returns the key associated with index i
-        int keyOf(int i)    {
+        T keyOf(int i)    {
             return keys[i];
         }
      
         // change the key associated with index i to the specified value
-        void changeKey(int i, int key)  {
+        void changeKey(int i, T key)  {
             keys[i] = key;
             bubbleUp(index[i]);
             bubbleDown(index[i]);
         }
      
         // decrease the key associated with index i to the specified value
-        void decreaseKey(int i, int key)    {
+        void decreaseKey(int i, T key)    {
             keys[i] = key;
             bubbleUp(index[i]);
         }
      
         // increase the key associated with index i to the specified value
-        void increaseKey(int i, int key)    {
+        void increaseKey(int i, T key)    {
             keys[i] = key;
             bubbleDown(index[i]);
         }
@@ -156,15 +156,13 @@ namespace minmax{
         {
             for(size_t index=0;index<initSize_;++index){
                 const float rawVal = values_[index];
-                CGP_ASSERT_OP(rawVal,>=,0.0);
-                CGP_ASSERT_OP(rawVal,<=,1.0);
 
                 const float scaled = rawVal*scale_;
                 const vigra::UInt64 iVal  = static_cast<vigra::UInt64>(scaled+0.5);
                 iValues_[index]=iVal;
 
                 // register iVal as key for index
-                pq_.insert(index,iVal);
+                pq_.insert(index,rawVal);
             }
         }
 
@@ -185,15 +183,14 @@ namespace minmax{
             values_.assign(begin,end);
             for(size_t index=0;index<initSize_;++index){
                 const float rawVal = values_[index];
-                CGP_ASSERT_OP(rawVal,>=,0.0);
-                CGP_ASSERT_OP(rawVal,<=,10.0);
+
 
                 const float scaled = rawVal*scale_;
                 const vigra::UInt64 iVal  = static_cast<vigra::UInt64>(scaled+0.5);
                 iValues_[index]=iVal;
 
                 // register iVal as key for index
-                pq_.insert(index,iVal);
+                pq_.insert(index,rawVal);
             }
         }
 
@@ -201,11 +198,12 @@ namespace minmax{
             CGP_ASSERT_OP(pq_.contains(index),==,true);
             CGP_ASSERT_OP(activeKey_[index],<=,1);
             CGP_ASSERT_OP(activeKey_[index],>=,1);
+            const float oldVal =values_[index];
             values_[index]=newVal;
             const float scaled = newVal*scale_;
             const vigra::UInt64 iValNew  = static_cast<vigra::UInt64>(scaled+0.5);
             const vigra::UInt64 iValOld  = iValues_[index];
-            pq_.changeKey(index,iValNew);
+            pq_.changeKey(index,newVal);
             /*
             if(iValNew<iValOld){
                 pq_.decreaseKey(index,iValNew);
@@ -241,7 +239,7 @@ namespace minmax{
         std::vector<float>          values_;
         std::vector<vigra::UInt64>  iValues_;
         std::vector<unsigned char>  activeKey_;
-        MinIndexedPQ                pq_;
+        MinIndexedPQ<float>         pq_;
     };
 
 
