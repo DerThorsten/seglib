@@ -57,22 +57,23 @@ def visualizeRegionFeatures(cgp,features,cellType=2,useTopologicalShape=False):
 def tinyAggl(cgp,grad,imgBig,imgBigRGB,labSmall,beta):
 
 	print "get hist"
-	hist  = normCProb(reshapeToImage(histogram( labSmall,r=3,sigma=[3.0,7.0]),labSmall.shape)) 
+	#hist  = normCProb(reshapeToImage(histogram( labSmall,r=3,sigma=[3.0,7.0]),labSmall.shape)) 
 
 	print "get dgraph"
 	dgraph=cgp2d.DynamicGraph(numberOfNodes=cgp.numCells(2),numberOfEdges=cgp.numCells(1))
 	initEdges = cgp.cell1BoundsArray().astype(numpy.uint64)-1
 	dgraph.setInitalEdges(initEdges)
 
-	#print "create node maps A"
-	nodeFeat = cgp.accumulateCellFeatures(cellType=2,image=hist,features='Mean')[0]['Mean'].astype(numpy.float32)
-	nodeSizeA = cgp.cellSizes(2)
-	nodeMapA  = cgp2d.nodeFeatureMap(dgraph,nodeFeat,nodeSizeA,0.0,"chiSquared")
 
-	print "create node maps B"
-	nodeFeat = cgp.accumulateCellFeatures(cellType=2,image=imgBigRGB,features='Mean')[0]['Mean'].astype(numpy.float32)
-	nodeSizeB = cgp.cellSizes(2)
-	nodeMapB  = cgp2d.nodeFeatureMap(dgraph,nodeFeat,nodeSizeB,0.0,"norm")
+	#print "create node maps A"
+	#nodeFeat = cgp.accumulateCellFeatures(cellType=2,image=hist,features='Mean')[0]['Mean'].astype(numpy.float32)
+	#nodeSizeA = cgp.cellSizes(2)
+	#nodeMapA  = cgp2d.nodeFeatureMap(dgraph,nodeFeat,nodeSizeA,0.0,"chiSquared")
+
+	#print "create node maps B"
+	#nodeFeat = cgp.accumulateCellFeatures(cellType=2,image=imgBigRGB,features='Mean')[0]['Mean'].astype(numpy.float32)
+	#nodeSizeB = cgp.cellSizes(2)
+	#nodeMapB  = cgp2d.nodeFeatureMap(dgraph,nodeFeat,nodeSizeB,0.0,"norm")
 
 
 
@@ -83,7 +84,7 @@ def tinyAggl(cgp,grad,imgBig,imgBigRGB,labSmall,beta):
 	edgeFeat = cgp.accumulateCellFeatures(cellType=1,image=grad,features='Mean')[0]['Mean'].reshape(-1,1).astype(numpy.float32)
 	edgeSize = cgp.cellSizes(1)
 	edgeMap  = cgp2d.EdgeFeatureMap(dgraph,edgeFeat,edgeSize,beta,1.0)
-	edgeMap.registerNodeMap(nodeMapA,3.0)
+	#edgeMap.registerNodeMap(nodeMapA,3.0)
 	#edgeMap.registerNodeMap(nodeMapB,0.5)
 
 

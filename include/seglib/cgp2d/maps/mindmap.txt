@@ -1,0 +1,35 @@
+
+node_map_interface 
+	merge(n0,n1)
+
+edge_map_interface
+
+why sep
+  - merge
+  - and another function "merge done"
+
+
+
+
+/*
+	maps which depend on each 
+	other must reflect that
+	in the order they are registered!
+
+
+*/
+
+
+the very new interface :
+	/* for edges merge and constract means different things */ 
+	mergeData( toMerge[],mergeIn)
+
+	/* constract for edges might even update edge weights 
+	   where the edge itself did not changed but one of the
+	   regions
+	*/
+	contract(edgeIndex)
+
+
+
+

@@ -13,12 +13,12 @@
 namespace cgp2d{
 
 template<class T>
-class NodeDiffMapBase : public NodeMapBase {
+class NodeDiffMapBase  {
 public:
-	NodeDiffMapBase() : NodeMapBase(){}
-	virtual void merge(const std::vector<size_t> & toMerge,const size_t newIndex)=0;
+	NodeDiffMapBase(){} //: NodeMapBase(){}
+	//virtual void merge(const std::vector<size_t> & toMerge,const size_t newIndex)=0;
 	virtual T nodeDistance(const size_t n0,const size_t n1)const=0;
-	virtual size_t nodeSize(const size_t n)const=0;
+	//virtual size_t nodeSize(const size_t n)const=0;
 };
 
 

@@ -195,9 +195,10 @@ namespace minmax{
         }
 
         void changeValue(const size_t index,const float newVal){
-            CGP_ASSERT_OP(pq_.contains(index),==,true);
+            
             CGP_ASSERT_OP(activeKey_[index],<=,1);
             CGP_ASSERT_OP(activeKey_[index],>=,1);
+            CGP_ASSERT_OP(pq_.contains(index),==,true);
             const float oldVal =values_[index];
             values_[index]=newVal;
             const float scaled = newVal*scale_;

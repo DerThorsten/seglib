@@ -59,7 +59,7 @@ void setInitalEdges(
     }
 }
 
-
+/*
 struct EdgeMapBaseWrap : EdgeMapBase, boostp::wrapper<EdgeMapBase>
 {
     void merge(const std::vector<size_t> & toMerge,const size_t newIndex){
@@ -105,7 +105,7 @@ struct EdgeWeightBaseWrap : EdgeWeightMapBase<T>, boostp::wrapper<EdgeWeightMapB
         this->get_override("edgeWeight")(e);
     }
 };
-
+*/
 
 
 /*
@@ -146,7 +146,7 @@ vigra::NumpyAnyArray computeUcmFeatures(
     const MAP_TYPE & map,
     vigra::NumpyArray<1 , float> res = vigra::NumpyArray<1,float >()
 ){
-    const size_t numberOfEdges=map.dgraph().initNumberOfEdges();
+    const size_t numberOfEdges=map.graph().initNumberOfEdges();
     res.reshapeIfEmpty(vigra::NumpyArray<1 , float>::difference_type(numberOfEdges));
     map.computeUcmFeatures(res);
     return res;
@@ -231,7 +231,7 @@ void export_dgraph()
 
 
 
-    boostp::class_<DynamicGraph>("DynamicGraph",boostp::init<const size_t,const size_t >
+    boostp::class_<DynamicGraph,boost::noncopyable>("DynamicGraph",boostp::init<const size_t,const size_t >
         (
             ( 
                 boostp::arg("numberOfNodes"),
@@ -274,7 +274,7 @@ void export_dgraph()
         )
     ;
 
-
+    /*
 
     // map bases
     boostp::class_<EdgeMapBaseWrap, boost::noncopyable>("EdgeMapBase")
@@ -299,7 +299,7 @@ void export_dgraph()
         .def("erase",boostp::pure_virtual(&EdgeWeightBaseWrapFloat::erase))
         .def("edgeWeight",boostp::pure_virtual(&EdgeWeightBaseWrapFloat::edgeWeight))
     ;
-
+ 
 
     // export factory
     boostp::def("nodeFeatureMap",vigra::registerConverters(&nodeFeatureMapFactory<float>), boostp::return_value_policy<boostp::manage_new_object>());
@@ -311,11 +311,11 @@ void export_dgraph()
     export_node_feature_map<NodeFeatureMapNormFloat,        NodeDiffMapBaseWrapFloat>("NodeFeatureMapNorm");
     export_node_feature_map<NodeFeatureMapSquaredNormFloat, NodeDiffMapBaseWrapFloat>("NodeFeatureMapSquaredNorm");
     export_node_feature_map<NodeFeatureMapChiSquaredFloat,  NodeDiffMapBaseWrapFloat>("NodeFeatureMapChiSquared");
-
+    */
 
 
     typedef EdgeFeatureMap<float> EdgeFeatureMapFloat;
-    boostp::class_<EdgeFeatureMapFloat, boostp::bases< EdgeWeightBaseWrapFloat >  >(
+    boostp::class_<EdgeFeatureMapFloat  >(
         "EdgeFeatureMap",boostp::init< DynamicGraph & >()
     )
         .def( "__init__",boostp::make_constructor(vigra::registerConverters(& edgeFeatureMapConstructor<EdgeFeatureMapFloat,2>)))
@@ -326,52 +326,9 @@ void export_dgraph()
             ),
             "compute ucm transformation"
         )
-        .def("registerNodeMap",&EdgeFeatureMapFloat::registerNodeMap)
+        //.def("registerNodeMap",&EdgeFeatureMapFloat::registerNodeMap)
     ;
     
-    
-/*
-    typedef EdgeFeatureMap<float> EdgeFeatureMapFloat;
-    typedef EdgeUcmMap<float>     EdgeUcmMap;
-    typedef NodeFeatureMap<float> NodeFeatureMapFloat;
-    //typedef DiffEdgeMap<float>    DiffEdgeMap;
-
-    
-    boostp::class_<EdgeFeatureMapFloat, boostp::bases<EdgeMapBaseWrap> >(
-        "EdgeFeatureMapFloat",boostp::init< >()
-    )
-        .def( "__init__",boostp::make_constructor(vigra::registerConverters(& nodeFeatureMapConstructor<EdgeFeatureMapFloat,2>)))
-    ;
-
-    boostp::class_<EdgeUcmMap, boostp::bases<EdgeMapBaseWrap> >(
-        "EdgeUcmMap",boostp::init< DynamicGraph & >()
-    )
-        .def( "__init__",boostp::make_constructor(vigra::registerConverters(& nodeFeatureMapConstructor<EdgeUcmMap,1>)))
-        .def("minEdge",&EdgeUcmMap::minEdge,"get the edge with minimum edge indicator")
-        .def("computeUcmFeatures",vigra::registerConverters(&computeUcmFeatures<EdgeUcmMap>),
-            (
-                boostp::arg("out")=boostp::object()
-            ),
-            "compute ucm transformation"
-        )
-    ;
- 
-    boostp::class_<DiffEdgeMap, boostp::bases<EdgeMapBaseWrap> >(
-        "DiffEdgeMap",boostp::init< DynamicGraph & ,NodeFeatureMapFloat >()
-    )
-        .def( "__init__",boostp::make_constructor(vigra::registerConverters(& edgeFeatureMapConstructor<DiffEdgeMap,NodeFeatureMapFloat,1>)))
-        .def("minEdge",&DiffEdgeMap::minEdge,"get the edge with minimum edge indicator")
-        .def("computeUcmFeatures",vigra::registerConverters(&computeUcmFeatures<DiffEdgeMap>),
-            (
-                boostp::arg("out")=boostp::object()
-            ),
-            "compute ucm transformation"
-        )
-    ;
-    
-
-    */
-    // factory
     //boostp::def("floatVecMap",&vecMapFactory<FloatVecMap>, boostp::return_value_policy<boostp::manage_new_object>() );
     
 }

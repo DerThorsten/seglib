@@ -35,6 +35,9 @@
 #include "cgp2d.hxx"
 
 
+#include <boost/function.hpp>
+#include <boost/signals2.hpp>
+
 namespace cgp2d {
 
 //class DynamicGraph;
@@ -111,7 +114,12 @@ public:
 
     typedef std::map<size_t , std::vector<size_t>  > DoubleMap;
     // setup
-    DynamicGraph(){}
+    
+private:
+    DynamicGraph();
+    DynamicGraph( const DynamicGraph& other ); // non construction-copyable
+    DynamicGraph& operator=( const DynamicGraph& ); // non copyable
+public:
     DynamicGraph(const size_t nNodes,const size_t nEdges);
     void   setInitalEdge(const size_t initEdge,const size_t initNode0,const size_t initNode1);
 
@@ -197,7 +205,70 @@ public:
 
     void mergeRegions(const size_t edgeIndex);
 
+
+
+    // node map callbacks typedefs
+    typedef boost::function<void (const size_t,const size_t,const size_t)>  MergeEdgeCallBack;
+    typedef boost::function<void (const size_t) >                           EraseEdgeCallBack;
+    typedef boost::function<void (const size_t) >                           NhChangedEdgeCallBack;
+
+
+    typedef boost::signals2::signal<void (const size_t,const size_t,const size_t)>  MergeEdgeSignal;
+    typedef boost::signals2::signal<void (const size_t) >                           EraseEdgeSignal;
+    typedef boost::signals2::signal<void (const size_t) >                           NhChangedEdgeSignal;
+
+    void registerMergeEdgeCallBack(
+        MergeEdgeCallBack  callBack
+    ){
+        mergeEdgeCallBacks_.push_back(callBack);
+    }
+
+    void registgerEraseEdgeCallBack(
+        EraseEdgeCallBack  callBack
+    ){
+        eraseEdgeCallBacks_.push_back(callBack);
+    }
+
+    void registerNhChangedEdgeCallBack(
+        NhChangedEdgeCallBack  callBack
+    ){
+        nhChangedEdgeCallBacks_.push_back(callBack);
+    }
+    
+    template<class F>
+    void connectergeEdgeSignal(
+        F  callBack
+    ){
+        mergeEdgeSignal_.connect(callBack);
+    }
+
+    template<class F>
+    void connectEraseEdgeSignal(
+        F  callBack
+    ){
+        eraseEdgeSignal_.connect(callBack);
+    }
+
+    template<class F>
+    void connecthChangedEdgeSigna(
+        F  callBack
+    ){
+        nhChanendSignal_.connect(callBack);
+    }
+ 
+    MergeEdgeSignal         mergeEdgeSignal_;
+    EraseEdgeSignal         eraseEdgeSignal_;
+    NhChangedEdgeSignal     nhChanendSignal_;
+    
 private:
+
+
+    std::vector<MergeEdgeCallBack>          mergeEdgeCallBacks_;
+    std::vector<EraseEdgeCallBack>          eraseEdgeCallBacks_;
+    std::vector<NhChangedEdgeCallBack>      nhChangedEdgeCallBacks_;
+
+
+
 
 
     typedef std::map<size_t, EdgeType > EdgeMap;
@@ -211,12 +282,6 @@ private:
     void combineDoubleEdges(const std::vector<size_t> & ,const size_t ,const size_t );
 
     
-    void registerMap( NodeMapBase * mapPtr){
-        nodeMaps_.push_back(mapPtr);
-    }
-    void registerMap(EdgeMapBase * mapPtr){
-        edgeMaps_.push_back(mapPtr);
-    }
 
 
     void fillDoubleMapAndRelabelNodes(const NodeType & node , DoubleMap & doubleMap,const size_t relabelFrom,const size_t relabelTo);
@@ -234,8 +299,7 @@ private:
     NodeMap dynamicNodes_;
 
 
-    std::vector< NodeMapBase * > nodeMaps_;
-    std::vector< EdgeMapBase * > edgeMaps_;
+
 
 };
 
@@ -244,9 +308,6 @@ public:
     NodeMapBase() {
     }
     virtual ~NodeMapBase(){}
-    virtual void registerMap(DynamicGraph & dgraph) {
-        dgraph.registerMap(this);
-    }
     virtual void merge(const std::vector<size_t> & toMerge,const size_t newIndex)=0;
 };
 
@@ -256,9 +317,6 @@ public:
     EdgeMapBase() {
     }
     virtual ~EdgeMapBase(){}
-    void registerMap(DynamicGraph & dgraph) {
-        dgraph.registerMap(this);
-    }
     virtual void merge(const std::vector<size_t> & toMerge,const size_t newIndex)=0;
     virtual void erase(const size_t index,const size_t newNodeIndex)=0;
 };
@@ -373,11 +431,21 @@ void DynamicGraph::combineDoubleEdges(const std::vector<size_t> & toCombine,cons
         }
     }
 
+    /*
     // call registerMaped edge maps merge
     for(size_t m=0; 
         m<edgeMaps_.size();++m){
         edgeMaps_[m]->merge(toCombine,newIndex);
     }
+    */
+    for(size_t tc=1;tc<toCombine.size();++tc){
+        // CALL CALLBACKS TO MERGE EDGES
+        for(size_t cb=0;cb<mergeEdgeCallBacks_.size();++cb){
+            mergeEdgeCallBacks_[cb](firstElement,toCombine[tc],newIndex);
+        }
+    }
+
+
 
     // update the two region between the double edge 
     const size_t regions[2]={r0,r1};
@@ -496,10 +564,11 @@ void DynamicGraph::mergeRegions(const size_t toDeleteEdgeIndex){
     // - we need to do this bevore any "merge" within the nodeMaps such that
     //   we can guarantee that the nodes maps are tidy when the edge-maps mergers
     //   are called
+    /*
     for(size_t m=0;m<nodeMaps_.size();++m){
         nodeMaps_[m]->merge(nodes,newNodeRep);
     }
-
+    */
 
 
     // construct the "DoubleMap"
@@ -556,18 +625,32 @@ void DynamicGraph::mergeRegions(const size_t toDeleteEdgeIndex){
 
                 }
             }
-
-            // call merge for edge maps
-            for(size_t m=0;m<edgeMaps_.size();++m){
-                edgeMaps_[m]->merge(edgeVec,newEdgeRep);
+            CGP_ASSERT_OP(edgeVec.size(),==,2)
+            CGP_ASSERT_OP(edgeVec[0],!=,toDeleteEdgeIndex);
+            CGP_ASSERT_OP(edgeVec[1],!=,toDeleteEdgeIndex);
+            CGP_ASSERT_OP(edgeVec[0],!=,edgeVec[1]);
+            CGP_ASSERT_OP(hasEdge(newEdgeRep),==,true);
+            // CALL CALLBACKS TO MERGE EDGES
+            for(size_t cb=0;cb<mergeEdgeCallBacks_.size();++cb){
+                mergeEdgeCallBacks_[cb](edgeVec[0],edgeVec[1],newEdgeRep);
             }
         } 
     }
-    // call erase for edge maps
-    for(size_t m=0;m<edgeMaps_.size();++m){
-        edgeMaps_[m]->erase(toDeleteEdgeIndex,newNodeRep);
+    // CALL CALLBACKS TO ERASE EDGES
+    for(size_t cb=0;cb<eraseEdgeCallBacks_.size();++cb){
+        eraseEdgeCallBacks_[cb](toDeleteEdgeIndex);
     }
 
+    // CALLBACK FOR EDGES THAT NH has changed
+    if(nhChangedEdgeCallBacks_.size()>0){
+        for(typename NodeType::EdgeIterator iter=newFormedNode.edgesBegin();iter!=newFormedNode.edgesEnd();++iter){
+            const size_t edgeIndex = *iter;
+            for(size_t cb=0;cb<nhChangedEdgeCallBacks_.size();++cb){
+                nhChangedEdgeCallBacks_[cb](edgeIndex);
+            }
+        }
+    }
+       
 
 
 
