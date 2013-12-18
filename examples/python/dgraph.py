@@ -4,17 +4,19 @@ from seglib import cgp2d
 import sys
 from seglib.clustering.ce_multicut import *
 from seglib.preprocessing import norm01,normCProb,reshapeToImage,normCProbFlat
+from seglib.preprocessing import norm01,normCProb,reshapeToImage
+from seglib.histogram import jointHistogram,histogram
 
 img = "img/37073.jpg"
 img="img/42049.jpg"
 #img="/home/tbeier/src/seglib/examples/python/img/lena.bmp"
 #img="/home/tbeier/src/seglib/examples/python/img/t.jpg"
-#img="/home/tbeier/src/privatOpengm/experiments/100075.jpg"
+img="/home/tbeier/src/privatOpengm/experiments/100075.jpg"
 #img="/home/tbeier/src/privatOpengm/experiments/datasets/bsd500/BSR/BSDS500/data/images/train/118035.jpg"
 #img="img/zebra.jpg"
 img = numpy.squeeze(vigra.readImage(img))#[0:75,0:75,:]
 lab = vigra.colors.transform_RGB2Lab(img)
-labels ,nseg= vigra.analysis.slicSuperpixels(lab,10.0,4)
+labels ,nseg= vigra.analysis.slicSuperpixels(lab,10.0,7)
 labels = vigra.analysis.labelImage(labels).astype(numpy.uint64)
 #grad =vigra.filters.gaussianGradientMagnitude(lab,1.5)
 #labels,nseg =vigra.analysis.watersheds(grad)
@@ -23,7 +25,7 @@ labels=labels.astype(numpy.uint64)
 cgp,tgrid = cgp2d.cgpFromLabels(labels)
 imgBig = vigra.sampling.resize(lab,cgp.shape)
 imgBigRGB = vigra.sampling.resize(img,cgp.shape)
-grad = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(imgBig,1.5))
+grad = numpy.squeeze(vigra.filters.gaussianGradientMagnitude(imgBig,2.5))
 
 
 
@@ -52,22 +54,25 @@ def visualizeRegionFeatures(cgp,features,cellType=2,useTopologicalShape=False):
 
 
 
-def tinyAggl(cgp,grad,imgBig,imgBigRGB,beta):
+def tinyAggl(cgp,grad,imgBig,imgBigRGB,labSmall,beta):
+
+	print "get hist"
+	hist  = normCProb(reshapeToImage(histogram( labSmall,r=3,sigma=[3.0,7.0]),labSmall.shape)) 
 
 	print "get dgraph"
 	dgraph=cgp2d.DynamicGraph(numberOfNodes=cgp.numCells(2),numberOfEdges=cgp.numCells(1))
 	initEdges = cgp.cell1BoundsArray().astype(numpy.uint64)-1
 	dgraph.setInitalEdges(initEdges)
 
-	print "create node maps A"
-	nodeFeat = cgp.accumulateCellFeatures(cellType=2,image=imgBig,features='Mean')[0]['Mean'].astype(numpy.float32)
-	nodeSize = numpy.ones(cgp.numCells(2),dtype=numpy.uint32)
-	nodeMapA  = cgp2d.nodeFeatureMap(dgraph,nodeFeat,nodeSize,"norm")
+	#print "create node maps A"
+	nodeFeat = cgp.accumulateCellFeatures(cellType=2,image=hist,features='Mean')[0]['Mean'].astype(numpy.float32)
+	nodeSizeA = cgp.cellSizes(2)
+	nodeMapA  = cgp2d.nodeFeatureMap(dgraph,nodeFeat,nodeSizeA,0.0,"chiSquared")
 
 	print "create node maps B"
 	nodeFeat = cgp.accumulateCellFeatures(cellType=2,image=imgBigRGB,features='Mean')[0]['Mean'].astype(numpy.float32)
-	nodeSize = numpy.ones(cgp.numCells(2),dtype=numpy.uint32)
-	nodeMapB  = cgp2d.nodeFeatureMap(dgraph,nodeFeat,nodeSize,"norm")
+	nodeSizeB = cgp.cellSizes(2)
+	nodeMapB  = cgp2d.nodeFeatureMap(dgraph,nodeFeat,nodeSizeB,0.0,"norm")
 
 
 
@@ -76,15 +81,10 @@ def tinyAggl(cgp,grad,imgBig,imgBigRGB,beta):
 
 	print "create edge maps"
 	edgeFeat = cgp.accumulateCellFeatures(cellType=1,image=grad,features='Mean')[0]['Mean'].reshape(-1,1).astype(numpy.float32)
-	#edgeFeat = norm01(edgeFeat)*0.99 + 0.005
-	edgeSize = numpy.ones(cgp.numCells(1),dtype=numpy.uint32)
-
-
-	print "edgeFeat",edgeFeat.shape,edgeFeat.dtype
-	edgeFeat=numpy.array(edgeFeat)
-	edgeMap  = cgp2d.EdgeFeatureMap(dgraph,edgeFeat,edgeSize,beta)
-	edgeMap.registerNodeMap(nodeMapA)
-	edgeMap.registerNodeMap(nodeMapB)
+	edgeSize = cgp.cellSizes(1)
+	edgeMap  = cgp2d.EdgeFeatureMap(dgraph,edgeFeat,edgeSize,beta,1.0)
+	edgeMap.registerNodeMap(nodeMapA,3.0)
+	#edgeMap.registerNodeMap(nodeMapB,0.5)
 
 
 	print "mergeParallelEdges"
@@ -105,7 +105,7 @@ def tinyAggl(cgp,grad,imgBig,imgBigRGB,beta):
 		dgraph.mergeRegions(long(minEdge))
 		c+=1
 
-		if dgraph.numberOfNodes()==100 :
+		if dgraph.numberOfNodes()==10 :
 			state 				= dgraph.stateOfInitalEdges().astype(numpy.float32)
 			cgp2d.visualize(imgBigRGB,cgp=cgp,edge_data_in=state,black=True,cmap='jet')
 		if dgraph.numberOfNodes()==1 :
@@ -115,4 +115,4 @@ def tinyAggl(cgp,grad,imgBig,imgBigRGB,beta):
 			return ucmFeatures
 
 
-tinyAggl(cgp=cgp,grad=grad,imgBig=imgBig,imgBigRGB=imgBigRGB,beta=0.95)
+tinyAggl(cgp=cgp,grad=grad,imgBig=imgBig,imgBigRGB=imgBigRGB,labSmall=lab,beta=0.9)

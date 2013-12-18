@@ -1156,6 +1156,19 @@ vigra::NumpyAnyArray orientedWatershedTransform
     return resultWeights;
 }
 
+template<class CGP>
+vigra::NumpyAnyArray cellSizes(
+    const CGP & cgp,
+    const size_t cellType,
+    vigra::NumpyArray<1, vigra::UInt32 > res = vigra::NumpyArray<1,vigra::UInt32> ()
+){
+    const size_t nCells = cgp.numCells(cellType);
+    res.reshapeIfEmpty(typename vigra::NumpyArray<1,vigra::UInt32>::difference_type(nCells));
+    for(size_t  c=0;c<nCells;++c){
+        res(c)=cgp.cellSize(cellType,c);
+    }
+    return res;
+}
 
 void export_cgp2d()
 {
@@ -1251,7 +1264,7 @@ void export_cgp2d()
     python::class_<CgpType>("Cgp",python::init<const TopologicalGridType & >()[with_custodian_and_ward<1 /*custodian == self*/, 2 /*ward == const TopologicalGridType& */>()] )
 
         .add_property("shape", python::make_function(&CgpType::shapeTopologicalGrid, python::return_value_policy<return_by_value>()) )
-        .add_property("shapeLabeling", python::make_function(&CgpType::shapeLabeling, python::return_value_policy<return_by_value>()) )
+        .add_property("shapeLabeling", python::make_function(&CgpType::shapeLabeling, python::return_value_policy<return_by_value>()))
 
         
         //.def("shape",&CgpType::shape)
@@ -1274,7 +1287,12 @@ void export_cgp2d()
         .def("_cell1GraphBiMean",vigra::registerConverters(&graphBiMean<CgpType>))
         .def("_cell1GraphAdjAcc",vigra::registerConverters(&cell1GraphAdjAcc<CgpType>))
         */
-
+        .def("cellSizes",vigra::registerConverters(&cellSizes<CgpType>),
+            (
+                arg("cellType"),
+                arg("out")=python::object()
+            )
+        )
         .def("serialize", &pyCgpSerialize<CgpType>)
         .def("numCells",&CgpType::numCells)
         .def("featureToImage",vigra::registerConverters(&featuresToFeatureImage<CgpType>),

@@ -42,7 +42,8 @@ public:
 		DynamicGraph & dgraph,vigra::MultiArrayView<2,T>  features, 
 		vigra::MultiArrayView<1,vigra::UInt32>  sizes,
 		//NodeDiffMapBase<T> * nodeMap,
-		const float beta
+		const float beta,
+		const float wardness
 	);
 
 	// virtual interface
@@ -57,8 +58,9 @@ public:
 
 	size_t minEdge();
 
-	void registerNodeMap( NodeDiffMapBase<T> * nodeMap){
+	void registerNodeMap( NodeDiffMapBase<T> * nodeMap,const float weight){
 		nodeMaps_.push_back(nodeMap);
+		nodeMapWeights_.push_back(weight);
 	}
 
 private:
@@ -75,10 +77,15 @@ private:
 
 		T sum = static_cast<T>(0);
 		for(size_t m=0;m<nodeMaps_.size();++m){
-			sum+=nodeMaps_[m]->nodeDistance(n0,n1);
+			sum+=nodeMapWeights_[m]*nodeMaps_[m]->nodeDistance(n0,n1);
 		}
 		return sum;
 	}
+
+	T geoTopoFactor(const size_t e,const size_t n0, const size_t n1)const{
+		
+	}
+
 
 	DynamicGraph & dgraph_;
 	vigra::MultiArrayView<2,T>             features_;
@@ -86,9 +93,10 @@ private:
 	vigra::MultiArray<1,T> 				   featureBuffer_;	
 
 	std::vector< NodeDiffMapBase<T> *  >   nodeMaps_;
-
+	std::vector< float > 				   nodeMapWeights_;
 	vigra::MultiArray<1,T> 				   weights_;	
 	float beta_;
+	float wardness_;
 	minmax::FloatPq pq_; 
 };
 
@@ -98,7 +106,8 @@ EdgeFeatureMap<T>::EdgeFeatureMap(
 	vigra::MultiArrayView<2,T>  features, 
 	vigra::MultiArrayView<1,vigra::UInt32>  sizes,
 	//NodeDiffMapBase<T> * nodeMap,
-	const float beta
+	const float beta,
+	const float wardness
 )
 :	EdgeWeightMapBase<T>(),
 	dgraph_(dgraph),
@@ -107,6 +116,7 @@ EdgeFeatureMap<T>::EdgeFeatureMap(
 	featureBuffer_(typename vigra::MultiArray<1,T>::difference_type(features.shape(1)) ),
 	weights_(typename vigra::MultiArray<1,T>::difference_type( dgraph_.initNumberOfEdges() ) ),
 	beta_(beta),
+	wardness_(wardness),
 	pq_( dgraph_.initNumberOfEdges())
 {
 	this->registerMap(dgraph_);
@@ -164,13 +174,32 @@ void EdgeFeatureMap<T>::erase(const size_t index,const size_t newNodeIndex){
 	for(typename NodeType::EdgeIterator iter=node.edgesBegin();iter!=node.edgesEnd();++iter){
 		const size_t edgeIndex = *iter;
 		const EdgeType & edge = dgraph_.getEdge(edgeIndex);
-		const T nodeDist      = nodeDiffSum(edge[0],edge[1]);
+		
 
 		//std::cout<<"node dist "<<nodeDist<<"\n";
 
-		const T pureEdgeWeight 	= edgeFeatureSum(edgeIndex);
-		weights_(edgeIndex) = beta_*pureEdgeWeight + (1.0-beta_)*nodeDist;
-		pq_.changeValue(edgeIndex,weights_(edgeIndex));
+		const T newEdgeWeight 	= edgeFeatureSum(edgeIndex);
+		
+		if(nodeMaps_.size()>0){
+			const T nodeDist      = nodeDiffSum(edge[0],edge[1]);
+			const T dist = beta_*newEdgeWeight + (1.0-beta_)*nodeDist;
+			const T sizeA  = static_cast<T>(nodeMaps_.front()->nodeSize(edge[0]));
+			const T sizeB  = static_cast<T>(nodeMaps_.front()->nodeSize(edge[1]));
+			const T rSizeA = static_cast<T>(1.0)/(std::sqrt(sizeA));
+			const T rSizeB = static_cast<T>(1.0)/(std::sqrt(sizeB));
+
+			const T wardDivisor = wardness_*(rSizeA+rSizeB) + (1.0-wardness_);
+			const T newDist =  dist/(wardDivisor);
+			weights_(edgeIndex) = newDist;
+			pq_.changeValue(edgeIndex,newDist);
+		}
+		else{
+			weights_(edgeIndex) = newEdgeWeight;
+			pq_.changeValue(edgeIndex,newEdgeWeight);
+		}
+
+
+		
 	}
 }
 

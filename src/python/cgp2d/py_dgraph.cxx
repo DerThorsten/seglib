@@ -87,6 +87,9 @@ struct NodeDiffMapBaseWrap : NodeDiffMapBase<T>, boostp::wrapper<NodeDiffMapBase
     T  nodeDistance(const size_t n0,const size_t n1)const{
         this->get_override("nodeDistance")(n0,n1);
     }
+    size_t nodeSize(const size_t n)const{
+        this->get_override("nodeSize")(n);
+    }
 };
 
 template<class T>
@@ -118,9 +121,10 @@ template<class MAP_TYPE,unsigned int FDIM>
 NodeDiffMapBase<typename  MAP_TYPE::value_type>  * nodeFeatureMapConstructor(
     DynamicGraph & dgraph,
     vigra::MultiArrayView<FDIM,typename  MAP_TYPE::value_type >  features,
-    vigra::MultiArrayView<1,vigra::UInt32>                       edgeSize
+    vigra::MultiArrayView<1,vigra::UInt32>                       edgeSize,
+    const float wardness
 ){
-    return new MAP_TYPE(dgraph,features,edgeSize);
+    return new MAP_TYPE(dgraph,features,edgeSize,wardness);
 }
 
 
@@ -130,12 +134,10 @@ MAP_TYPE * edgeFeatureMapConstructor(
     vigra::MultiArrayView<FDIM,typename  MAP_TYPE::value_type >    features,
     vigra::MultiArrayView<1,vigra::UInt32>                         edgeSize,
     //NodeDiffMapBase<typename  MAP_TYPE::value_type>            *   nodeMap,
-    const float beta
+    const float beta,
+    const float wardness
 ){
-    return new MAP_TYPE(dgraph,features,edgeSize
-        //,nodeMap
-        ,beta
-        );
+    return new MAP_TYPE(dgraph,features,edgeSize,beta,wardness);
 }
 
 
@@ -185,22 +187,23 @@ NodeDiffMapBase<T>  * nodeFeatureMapFactory(
     DynamicGraph & dgraph,
     vigra::MultiArrayView<2, T >  features,
     vigra::MultiArrayView<1,vigra::UInt32>                       edgeSize,
+    const float wardness,
     const std::string & distance
 ){
     if(distance==std::string("norm")){
         typedef dist::Norm<T> DistFunctor;
         typedef NodeFeatureMap<T,DistFunctor > NodeMap;
-        return new NodeMap(dgraph,features,edgeSize);
+        return new NodeMap(dgraph,features,edgeSize,wardness);
     }
     else if(distance==std::string("squaredNorm")){
         typedef dist::SquaredNorm<T> DistFunctor;
         typedef NodeFeatureMap<T,DistFunctor > NodeMap;
-        return new NodeMap(dgraph,features,edgeSize);
+        return new NodeMap(dgraph,features,edgeSize,wardness);
     }
     else if(distance==std::string("chiSquared")){
         typedef dist::ChiSquared<T> DistFunctor;
         typedef NodeFeatureMap<T,DistFunctor > NodeMap;
-        return new NodeMap(dgraph,features,edgeSize);
+        return new NodeMap(dgraph,features,edgeSize,wardness);
     }
     else{
         throw std::runtime_error("unknown distance");
@@ -287,6 +290,7 @@ void export_dgraph()
     boostp::class_<NodeDiffMapBaseWrapFloat, boost::noncopyable >("NodeDiffMapBase")
         .def("merge",boostp::pure_virtual(&NodeDiffMapBaseWrapFloat::merge))
         .def("nodeDistance",boostp::pure_virtual(&NodeDiffMapBaseWrapFloat::nodeDistance))
+        .def("nodeSize",boostp::pure_virtual(&NodeDiffMapBaseWrapFloat::nodeSize))
     ;
 
     typedef EdgeWeightBaseWrap<float> EdgeWeightBaseWrapFloat;

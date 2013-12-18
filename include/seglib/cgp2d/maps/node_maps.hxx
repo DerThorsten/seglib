@@ -18,7 +18,7 @@ public:
 	NodeDiffMapBase() : NodeMapBase(){}
 	virtual void merge(const std::vector<size_t> & toMerge,const size_t newIndex)=0;
 	virtual T nodeDistance(const size_t n0,const size_t n1)const=0;
-
+	virtual size_t nodeSize(const size_t n)const=0;
 };
 
 
@@ -31,11 +31,12 @@ public:
 	// dummy constructor
 	NodeFeatureMap( DynamicGraph & dgrap):NodeDiffMapBase<T>(),dgraph_(dgrap){}
 	// real constructor
-	NodeFeatureMap( DynamicGraph & dgraph,vigra::MultiArrayView<2,T>  features, vigra::MultiArrayView<1,vigra::UInt32>  sizes);
+	NodeFeatureMap( DynamicGraph & dgraph,vigra::MultiArrayView<2,T>  features, vigra::MultiArrayView<1,vigra::UInt32>  sizes,const float wardness);
 
 	// virtual interface
 	virtual void merge(const std::vector<size_t> & toMerge,const size_t newIndex);
 	virtual T nodeDistance(const size_t n0,const size_t n1)const;
+	virtual size_t nodeSize(const size_t n)const{return sizes_(n);}
 
 	// additonal interface
 	size_t numberOfFeatures()const{return featureBuffer_.shape(0);}
@@ -47,15 +48,17 @@ private:
 	vigra::MultiArrayView<2,T>             features_;
 	vigra::MultiArrayView<1,vigra::UInt32> sizes_;
 	vigra::MultiArray<1,T> 				   featureBuffer_;	
+	float wardness_;
 };
 
 template<class T,class DIST_FUNCTOR>
-NodeFeatureMap<T,DIST_FUNCTOR>::NodeFeatureMap( DynamicGraph & dgraph, vigra::MultiArrayView<2,T>  features, vigra::MultiArrayView<1,vigra::UInt32>  sizes)
+NodeFeatureMap<T,DIST_FUNCTOR>::NodeFeatureMap( DynamicGraph & dgraph, vigra::MultiArrayView<2,T>  features, vigra::MultiArrayView<1,vigra::UInt32>  sizes,const float wardness)
 :	NodeDiffMapBase<T>(),
 	dgraph_(dgraph),
 	features_(features),
 	sizes_(sizes),
-	featureBuffer_(typename vigra::MultiArray<1,T>::difference_type(features.shape(1)) )
+	featureBuffer_(typename vigra::MultiArray<1,T>::difference_type(features.shape(1)) ),
+	wardness_(wardness)
 {
 	CGP_ASSERT_OP(features_.shape(0),==,dgraph_.initNumberOfNodes());
 	this->registerMap(dgraph_);
@@ -85,7 +88,11 @@ T NodeFeatureMap<T,DIST_FUNCTOR>::nodeDistance(const size_t n0,const size_t n1)c
 	//dist::Norm<T> distFunctor;
 
 	DIST_FUNCTOR distFunctor;
-	return distFunctor(features_.bindInner(n0),features_.bindInner(n1));
+	const T dist    = distFunctor(features_.bindInner(n0),features_.bindInner(n1));
+	const T rSizeA  = static_cast<T>(1.0f)/static_cast<T>(sizes_(n0));
+	const T rSizeB  = static_cast<T>(1.0f)/static_cast<T>(sizes_(n1));
+	const T wardDivisor = wardness_*(rSizeA+rSizeB) + (1.0-wardness_);
+	return dist/(wardDivisor);
 }
 
 template<class T,class DIST_FUNCTOR>
