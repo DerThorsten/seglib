@@ -10,7 +10,7 @@
 #include "seglib/cgp2d/cgp2d_python.hxx"
 #include "seglib/cgp2d/dynamic_graph.hxx"
 #include "seglib/distances/distance.hxx"
-#include "seglib/cgp2d/maps/graph_map.hxx"
+#include "seglib/cgp2d/maps/graph_map_base.hxx"
 #include "seglib/cgp2d/dmin.hxx"
 #include <functional>
 namespace cgp2d{

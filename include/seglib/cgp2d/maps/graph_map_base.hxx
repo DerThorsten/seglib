@@ -21,6 +21,11 @@ protected:
 };  
 
 
+
+
+
+// GRAPH BASE
+
 template<class DYNAMIC_GRAPH>
 inline GraphMapBase<DYNAMIC_GRAPH>::GraphMapBase(
     typename GraphMapBase<DYNAMIC_GRAPH>::DynamicGraphType & graph
